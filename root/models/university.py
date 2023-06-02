@@ -1,4 +1,4 @@
-from app import db
+from db_init import db
 
 
 class University(db.Model):

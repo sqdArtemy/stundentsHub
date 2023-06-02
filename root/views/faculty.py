@@ -3,7 +3,7 @@ from marshmallow import ValidationError
 from flask import jsonify, make_response
 from models import Faculty
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
-from app import parser
+from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import instance_exists
 

@@ -1,6 +1,6 @@
 from marshmallow import fields, validates, ValidationError
 from models import Faculty, University
-from app import ma
+from app_init import ma
 from checkers import is_name_valid, instance_exists_by_id
 
 

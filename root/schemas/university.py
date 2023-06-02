@@ -1,7 +1,7 @@
 from marshmallow import fields, validates, ValidationError
 from models import University
 from .faculty import FacultyGetSchema
-from app import ma
+from app_init import ma
 from checkers import is_name_valid, is_email_valid, is_phone_valid
 
 

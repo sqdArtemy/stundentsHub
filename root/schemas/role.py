@@ -1,6 +1,6 @@
 from marshmallow import fields
 from models import Role
-from app import ma
+from app_init import ma
 from checkers import is_name_valid
 
 

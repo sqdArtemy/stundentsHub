@@ -1,6 +1,6 @@
 from marshmallow import fields, validate, validates, ValidationError
 from models import Post, User
-from app import ma
+from app_init import ma
 from checkers import instance_exists_by_id
 from text_templates import OBJECT_DOES_NOT_EXIST
 

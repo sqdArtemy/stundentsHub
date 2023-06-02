@@ -3,7 +3,7 @@ from marshmallow import ValidationError
 from flask import jsonify, make_response
 from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
-from app import parser
+from app_init import parser
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import instance_exists
 

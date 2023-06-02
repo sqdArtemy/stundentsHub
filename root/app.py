@@ -1,28 +1,9 @@
-from flask import Flask
 from flask_cli import FlaskGroup
-from flask_restful import Api, reqparse
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_marshmallow import Marshmallow
-
-app = Flask(__name__)
-app.config.from_object("config.DevelopmentConfig")
-
-db = SQLAlchemy(app)
-ma = Marshmallow(app)
-parser = reqparse.RequestParser()
-
-migrate = Migrate()
-migrate.init_app(app, db)
+from flask_restful import Api
+from app_init import app
 
 api = Api(app)
 cli = FlaskGroup(app)
-
-# from user import (
-#     User, Role, RoleListViewSet, RoleDetailedViewSet, UserListViewSet, UserDetailedViewSet, UserRegisterView
-# )
-# from university import Faculty, University, UniversityListView, UniversityDetailedView
-# from post import Post, Comment
 
 from models import User, Role, University, Faculty, Post, Comment
 from views import (

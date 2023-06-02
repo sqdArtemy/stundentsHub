@@ -1,7 +1,7 @@
 from marshmallow import fields, validate, post_load, validates, ValidationError
 from werkzeug.security import generate_password_hash
 from models import User, Role, Faculty, University
-from app import ma
+from app_init import ma
 from checkers import is_email_valid, instance_exists_by_id, is_phone_valid, is_name_valid
 
 
