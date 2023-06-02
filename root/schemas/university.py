@@ -2,7 +2,7 @@ from marshmallow import fields, validates, ValidationError
 from models import University
 from .faculty import FacultyGetSchema
 from app import ma
-from checkers import is_name_valid, is_email_valid, instance_exists_by_id, is_phone_valid
+from checkers import is_name_valid, is_email_valid, is_phone_valid
 
 
 class UniversitySchemaMixin:

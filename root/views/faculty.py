@@ -3,8 +3,8 @@ from marshmallow import ValidationError
 from flask import jsonify, make_response
 from models import Faculty
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
-from app import db, parser
-from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
+from app import parser
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import instance_exists
 
 
@@ -69,4 +69,4 @@ class FacultyDetailedView(Resource):
 
             return jsonify(self.faculty_get_schema.dump(faculty))
         except ValidationError as e:
-            abort(400, error_message=e)
+            abort(400, error_message=str(e))

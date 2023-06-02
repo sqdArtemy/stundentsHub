@@ -3,11 +3,9 @@ from marshmallow import ValidationError
 from flask import jsonify, make_response
 from werkzeug.security import check_password_hash
 from models import User
-from schemas import (
-    UserCreateSchema, UserGetSchema, UserUpdateSchema
-)
-from app import db, parser
-from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
+from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
+from app import parser
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import instance_exists
 
 

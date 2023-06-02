@@ -4,8 +4,8 @@ from marshmallow import ValidationError
 from flask import jsonify, make_response
 from models import Post
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
-from app import db, parser
-from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
+from app import parser
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import instance_exists
 
 
@@ -73,4 +73,4 @@ class PostDetailedView(Resource):
 
             return jsonify(self.post_get_schema.dump(post))
         except ValidationError as e:
-            abort(404, error_message=e)
+            abort(404, error_message=str(e))

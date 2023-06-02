@@ -22,8 +22,8 @@ class PostGetSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Post
         ordered = True
-        fields = {"post_id", "post_heading", "post_text", "post_created_at", "post_modified_at",
-                  "post_author", "post_comments"}
+        fields = ("post_id", "post_heading", "post_text", "post_created_at", "post_modified_at",
+                  "post_author", "post_comments")
         include_relationships = True
         load_instance = True
 
@@ -38,7 +38,7 @@ class PostCreateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
     class Meta:
         model = Post
         ordered = True
-        fields = {"post_heading", "post_text", "post_created_at", "post_modified_at", "post_author"}
+        fields = ("post_heading", "post_text", "post_created_at", "post_modified_at", "post_author")
         include_relationships = True
         load_instance = True
 
@@ -47,6 +47,6 @@ class PostUpdateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
     class Meta:
         model = Post
         ordered = True
-        fields = {"post_heading", "post_text", "post_modified_at"}
+        fields = ("post_heading", "post_text", "post_modified_at")
         include_relationships = True
         load_instance = False

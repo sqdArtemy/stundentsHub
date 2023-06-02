@@ -1,12 +1,9 @@
 from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
-from werkzeug.security import check_password_hash
-from models import Role, User
-from schemas import (
-    UserCreateSchema, UserGetSchema, RoleGetSchema, RoleCreateSchema, RoleUpdateSchema, UserUpdateSchema
-)
-from app import db, parser
+from models import Role
+from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
+from app import parser
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import instance_exists
 

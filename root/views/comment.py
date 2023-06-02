@@ -2,10 +2,10 @@ from flask_restful import Resource, abort
 from datetime import datetime
 from marshmallow import ValidationError
 from flask import jsonify, make_response
-from models import Post, Comment, User
-from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateschema
-from app import db, parser
-from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
+from models import Comment
+from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema
+from app import parser
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import instance_exists
 
 
@@ -32,12 +32,12 @@ class CommentListView(Resource):
 
             return make_response(jsonify(self.comment_get_schema.dump(comment)),201)
         except ValidationError as e:
-            abort(400, error_message=e)
+            abort(400, error_message=str(e))
 
 
 class CommentDetailedView(Resource):
     comment_get_schema = CommentGetSchema()
-    comment_update_schema = CommentUpdateschema()
+    comment_update_schema = CommentUpdateSchema()
 
     def get(self, comment_id):
         comment = Comment.query.get(comment_id)
@@ -73,4 +73,4 @@ class CommentDetailedView(Resource):
 
             return jsonify(self.comment_get_schema.dump(comment))
         except ValidationError as e:
-            abort(400, error_message=e)
+            abort(400, error_message=str(e))

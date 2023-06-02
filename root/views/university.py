@@ -2,12 +2,9 @@ from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
 from models import University
-from schemas import (
-    FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema, UniversityGetSchema, UniversityCreateSchema,
-    UniversityUpdateSchema
-)
-from app import db, parser
-from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
+from schemas import UniversityGetSchema, UniversityCreateSchema,UniversityUpdateSchema
+from app import parser
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import instance_exists
 
 

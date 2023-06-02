@@ -27,13 +27,13 @@ class CommentGetSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Comment
         ordered = True
-        fields = {"comment_id", "comment_text", "comment_created_at",
-                  "comment_modified_at", "comment_author", "comment_post"}
+        fields = ("comment_id", "comment_text", "comment_created_at",
+                  "comment_modified_at", "comment_author", "comment_post")
         include_relationships = True
         load_instance = True
 
 
-class CommentCreateShema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
+class CommentCreateSchema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
     comment_text = fields.Str(required=True, validate=validate.Length(min=1, max=250))
     comment_created_at = fields.DateTime(required=True)
     comment_modified_at = fields.DateTime(required=False)
@@ -43,7 +43,7 @@ class CommentCreateShema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
     class Meta:
         model = Comment
         ordered = True
-        fields = {"comment_text", "comment_created_at", "comment_modified_at", "comment_author", "comment_post"}
+        fields = ("comment_text", "comment_created_at", "comment_modified_at", "comment_author", "comment_post")
         include_relationships = True
         load_instance = True
 
@@ -52,6 +52,6 @@ class CommentUpdateSchema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
     class Meta:
         model = Comment
         ordered = True
-        fields = {"comment_text", "comment_modified_at"}
+        fields = ("comment_text", "comment_modified_at")
         include_relationships = True
         load_instance = False

@@ -1,9 +1,7 @@
 from marshmallow import fields
 from models import Role
 from app import ma
-from checkers import (
-    is_email_valid, instance_exists_by_id, is_phone_valid, is_name_valid, is_date_valid
-)
+from checkers import is_name_valid
 
 
 class RoleGetSchema(ma.SQLAlchemyAutoSchema):
