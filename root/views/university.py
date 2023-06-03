@@ -1,11 +1,12 @@
 from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
+from flask_jwt_extended import jwt_required
 from models import University
 from schemas import UniversityGetSchema, UniversityCreateSchema,UniversityUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists
+from checkers import instance_exists, is_authorized_error_handler
 
 
 class UniversityListView(Resource):
@@ -13,10 +14,14 @@ class UniversityListView(Resource):
     university_get_schema = UniversityGetSchema()
     university_create_schema = UniversityCreateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self):
         universities = University.query.all()
         return jsonify(self.universities_get_schema.dump(universities))
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def post(self):
         parser.add_argument("university_name", location="form")
         parser.add_argument("university_email", location="form")
@@ -36,6 +41,8 @@ class UniversityDetailedView(Resource):
     university_get_schema = UniversityGetSchema()
     university_update_schema = UniversityUpdateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self, university_id: int):
         university = University.query.get(university_id)
         if not instance_exists(university):
@@ -44,6 +51,8 @@ class UniversityDetailedView(Resource):
         return jsonify(self.university_get_schema.dump(university))
 
     @classmethod
+    @is_authorized_error_handler()
+    @jwt_required()
     def delete(cls, university_id: int):
         university = University.query.get(university_id)
         if not instance_exists(university):
@@ -52,6 +61,8 @@ class UniversityDetailedView(Resource):
 
         return {"success": OBJECT_DELETED.format("University", university_id)}, 200
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def put(self, university_id: int):
         university = University.query.get(university_id)
         if not instance_exists(university):
@@ -72,8 +83,3 @@ class UniversityDetailedView(Resource):
             return jsonify(self.university_get_schema.dump(university))
         except ValidationError as e:
             abort(400, error_message=str(e))
-
-
-
-
-

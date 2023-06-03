@@ -1,12 +1,13 @@
 from flask_restful import Resource, abort
 from datetime import datetime
 from marshmallow import ValidationError
+from flask_jwt_extended import jwt_required
 from flask import jsonify, make_response
 from models import Post
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists
+from checkers import instance_exists, is_authorized_error_handler
 
 
 class PostListView(Resource):
@@ -14,10 +15,14 @@ class PostListView(Resource):
     post_get_schema = PostGetSchema()
     post_create_schema = PostCreateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self):
         posts = Post.query.all()
         return jsonify(self.posts_get_schema.dump(posts))
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def post(self):
         parser.add_argument("post_heading", location="form")
         parser.add_argument("post_text", location="form")
@@ -39,6 +44,8 @@ class PostDetailedView(Resource):
     post_get_schema = PostGetSchema()
     post_update_schema = PostUpdateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self, post_id: int):
         post = Post.query.get(post_id)
         if not instance_exists(post):
@@ -46,6 +53,8 @@ class PostDetailedView(Resource):
         return jsonify(self.post_get_schema.dump(post))
 
     @classmethod
+    @is_authorized_error_handler()
+    @jwt_required()
     def delete(cls, post_id: int):
         post = Post.query.get(post_id)
         if not instance_exists(post):
@@ -54,7 +63,9 @@ class PostDetailedView(Resource):
 
         return {"success": OBJECT_DELETED.format("Post", post_id)}, 200
 
-    def update(self, post_id: int):
+    @is_authorized_error_handler()
+    @jwt_required()
+    def put(self, post_id: int):
         post = Post.query.get(post_id)
         if not instance_exists(post):
             abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))

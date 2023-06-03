@@ -2,11 +2,12 @@ from flask_restful import Resource, abort
 from datetime import datetime
 from marshmallow import ValidationError
 from flask import jsonify, make_response
+from flask_jwt_extended import jwt_required
 from models import Comment
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists
+from checkers import instance_exists, is_authorized_error_handler
 
 
 class CommentListView(Resource):
@@ -14,10 +15,14 @@ class CommentListView(Resource):
     comment_get_schema = CommentGetSchema()
     comment_create_schema = CommentCreateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self):
         comments = Comment.query.all()
         return jsonify(self.comments_get_schema.dump(comments))
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def post(self):
         parser.add_argument("comment_text", location="form")
         parser.add_argument("comment_author", location="form")
@@ -39,6 +44,8 @@ class CommentDetailedView(Resource):
     comment_get_schema = CommentGetSchema()
     comment_update_schema = CommentUpdateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self, comment_id):
         comment = Comment.query.get(comment_id)
         if not instance_exists(comment):
@@ -47,6 +54,8 @@ class CommentDetailedView(Resource):
         return jsonify(self.comment_get_schema.dump(comment))
 
     @classmethod
+    @is_authorized_error_handler()
+    @jwt_required()
     def delete(cls, comment_id):
         comment = Comment.query.get(comment_id)
         if not instance_exists(comment):
@@ -55,6 +64,8 @@ class CommentDetailedView(Resource):
 
         return {"success": OBJECT_DELETED.format("Comment", comment_id)}
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def put(self, comment_id):
         comment = Comment.query.get(comment_id)
         if not instance_exists(comment):

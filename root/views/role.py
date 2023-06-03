@@ -1,11 +1,12 @@
 from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
+from flask_jwt_extended import jwt_required
 from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
 from app_init import parser
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists
+from checkers import instance_exists, is_authorized_error_handler
 
 
 class RoleListViewSet(Resource):
@@ -13,10 +14,14 @@ class RoleListViewSet(Resource):
     role_get_schema = RoleGetSchema()
     role_create_schema = RoleCreateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self):
         roles = Role.query.all()
         return jsonify(self.roles_get_schema.dump(roles))
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def post(self):
         parser.add_argument("role_name", required=True, location="form", help=MSG_MISSING.format("role_name"))
         data = parser.parse_args()
@@ -34,6 +39,8 @@ class RoleDetailedViewSet(Resource):
     role_get_schema = RoleGetSchema()
     role_update_schema = RoleUpdateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self, role_id: int):
         role = Role.query.get(role_id)
         if not instance_exists(role):
@@ -41,6 +48,8 @@ class RoleDetailedViewSet(Resource):
         return jsonify(self.role_get_schema.dump(role))
 
     @classmethod
+    @is_authorized_error_handler()
+    @jwt_required()
     def delete(cls, role_id: int):
         role = Role.query.get(role_id)
         if not instance_exists(role):
@@ -49,6 +58,8 @@ class RoleDetailedViewSet(Resource):
 
         return {"success": OBJECT_DELETED.format("Role", role_id)}, 200
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def put(self, role_id: int):
         role = Role.query.get(role_id)
         if not instance_exists(role):

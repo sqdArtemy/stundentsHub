@@ -3,7 +3,9 @@ This module contains functions which are used to check conditions
 I did it in separate module, because these functions are used throughout whole project
 """
 import re
-from typing import Match
+from flask_jwt_extended.exceptions import NoAuthorizationError
+from flask import current_app
+from flask_restful import abort
 from marshmallow import ValidationError
 
 
@@ -43,3 +45,16 @@ def is_datetime_valid(datetime: str):
     datetime_regexp = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}[+-]\d{2}:\d{2}$"
     if not re.match(datetime_regexp, datetime):
         raise ValidationError("Entered date and time has invalid format.")
+
+
+def is_authorized_error_handler():
+    def decorate(function):
+        def wrapper(*args, **kwargs):
+            try:
+                return current_app.ensure_sync(function)(*args, **kwargs)
+            except NoAuthorizationError:
+                abort(403, error_message="User is not authorized.")
+
+        return wrapper
+
+    return decorate

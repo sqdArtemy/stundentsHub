@@ -1,12 +1,13 @@
 from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
+from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required
 from werkzeug.security import check_password_hash
 from models import User
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists
+from checkers import instance_exists, is_authorized_error_handler
 
 
 class UserRegisterView(Resource):
@@ -37,9 +38,34 @@ class UserRegisterView(Resource):
             abort(400, error_message=str(e))
 
 
+class UserLoginView(Resource):
+    @classmethod
+    def post(cls):
+        parser.add_argument("email", location="form")
+        parser.add_argument("password", location="form")
+        data = parser.parse_args()
+
+        user = User.query.filter_by(user_email=data.get("email")).first()
+        if instance_exists(user):
+            is_password_correct = check_password_hash(user.user_password, data.get("password"))
+
+            if is_password_correct:
+                access_token = create_access_token(identity=user.user_id)
+                refresh_token = create_refresh_token(identity=user.user_id)
+
+                return {
+                    "user": {
+                        "access_token": access_token,
+                        "refresh_token": refresh_token
+                    }
+                }, 200
+        return {"error": "Wrong credentials."}, 400
+
 class UserListViewSet(Resource):
     users_schema = UserGetSchema(many=True)
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self):
         users = User.query.all()
         return jsonify(self.users_schema.dump(users))
@@ -49,6 +75,8 @@ class UserDetailedViewSet(Resource):
     user_get_schema = UserGetSchema()
     user_update_schema = UserUpdateSchema()
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self, user_id: int):
         user = User.query.get(user_id)
         if not instance_exists(user):
@@ -57,6 +85,8 @@ class UserDetailedViewSet(Resource):
         return jsonify(self.user_get_schema.dump(user))
 
     @classmethod
+    @is_authorized_error_handler()
+    @jwt_required()
     def delete(cls, user_id: int):
         user = User.query.get(user_id)
         if not instance_exists(user):
@@ -65,6 +95,8 @@ class UserDetailedViewSet(Resource):
 
         return {"success": OBJECT_DELETED.format("User", user_id)}, 200
 
+    @is_authorized_error_handler()
+    @jwt_required()
     def put(self, user_id: int):
         user = User.query.get(user_id)
         if not instance_exists(user):

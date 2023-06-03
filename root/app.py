@@ -1,16 +1,18 @@
 from flask_cli import FlaskGroup
 from flask_restful import Api
 from app_init import app
+from flask_jwt_extended import JWTManager
+from views import (
+    UserRegisterView, UserDetailedViewSet, UserListViewSet, RoleDetailedViewSet, RoleListViewSet,
+    UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
+    CommentDetailedView, CommentListView, UserLoginView
+)
 
+JWTManager(app)
 api = Api(app)
 cli = FlaskGroup(app)
 
 from models import User, Role, University, Faculty, Post, Comment
-from views import (
-    UserRegisterView, UserDetailedViewSet, UserListViewSet, RoleDetailedViewSet, RoleListViewSet,
-    UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
-    CommentDetailedView, CommentListView
-)
 
 # Role urls
 api.add_resource(RoleListViewSet, "/user_roles")
@@ -19,6 +21,7 @@ api.add_resource(RoleDetailedViewSet, "/user_role/<int:role_id>")
 api.add_resource(UserListViewSet, "/users")
 api.add_resource(UserDetailedViewSet, "/user/<int:user_id>")
 api.add_resource(UserRegisterView, "/register")
+api.add_resource(UserLoginView, "/login")
 # University urls
 api.add_resource(UniversityListView, "/universities")
 api.add_resource(UniversityDetailedView, "/university/<int:university_id>")

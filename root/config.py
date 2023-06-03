@@ -17,6 +17,7 @@ class Config(object):
     DEBUG = False
     CSRF_ENABLED = True
     SECRET_KEY = get_env_variable("SECRET_KEY")
+    JWT_SECRET_KEY = get_env_variable("JWT_SECRET_KEY")
     #  Postgres config
     POSTGRES_URL = get_env_variable("POSTGRES_URL")
     POSTGRES_USER = get_env_variable("POSTGRES_USER")
