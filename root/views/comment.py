@@ -4,10 +4,10 @@ from datetime import datetime
 from marshmallow import ValidationError
 from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import Comment
+from models import Comment, User
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema
 from app_init import parser
-from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from checkers import is_authorized_error_handler
 
 
@@ -60,6 +60,11 @@ class CommentDetailedView(Resource):
         comment = Comment.query.get(comment_id)
         if not comment:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
+
+        editor = User.query.get(get_jwt_identity())
+        if editor is not comment.author:
+            abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_DELETE_NOT_ALLOWED.format("comment"))
+
         comment.delete()
 
         return {"success": OBJECT_DELETED.format("Comment", comment_id)}, http_codes.HTTP_NO_CONTENT_204
@@ -71,7 +76,10 @@ class CommentDetailedView(Resource):
         if not comment:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
 
-        print("wtf")
+        editor = User.query.get(get_jwt_identity())
+        if editor is not comment.author:
+            abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("comment"))
+
         parser.add_argument("comment_text", location="form")
         data = parser.parse_args()
         data["comment_modified_at"] = str(datetime.utcnow())

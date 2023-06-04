@@ -51,7 +51,7 @@ def is_authorized_error_handler():
             try:
                 return current_app.ensure_sync(function)(*args, **kwargs)
             except NoAuthorizationError:
-                abort(http_codes.HTTP_FORBIDDEN_403, error_message="User is not authorized.")
+                abort(http_codes.HTTP_UNAUTHORIZED_401, error_message="User is not authorized.")
 
         return wrapper
 

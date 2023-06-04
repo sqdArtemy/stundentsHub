@@ -4,10 +4,10 @@ from datetime import datetime
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import jsonify, make_response
-from models import Post
+from models import Post, User
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
 from app_init import parser
-from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from checkers import is_authorized_error_handler
 
 
@@ -59,6 +59,11 @@ class PostDetailedView(Resource):
         post = Post.query.get(post_id)
         if not post:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+
+        editor = User.query.get(get_jwt_identity())
+        if editor is not post.author:
+            abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_DELETE_NOT_ALLOWED.format("post"))
+
         post.delete()
 
         return {"success": OBJECT_DELETED.format("Post", post_id)}, http_codes.HTTP_NO_CONTENT_204
@@ -69,6 +74,10 @@ class PostDetailedView(Resource):
         post = Post.query.get(post_id)
         if not post:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+
+        editor = User.query.get(get_jwt_identity())
+        if editor is not post.author:
+            abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("post"))
 
         parser.add_argument("post_heading", location="form")
         parser.add_argument("post_text", location="form")
