@@ -73,7 +73,7 @@ class PostDetailedView(Resource):
         parser.add_argument("post_heading", location="form")
         parser.add_argument("post_text", location="form")
         data = parser.parse_args()
-        data["post_modified_at"] = datetime.utcnow()
+        data["post_modified_at"] = str(datetime.utcnow())
         data = {key: value for key, value in data.items() if value}
 
         try:

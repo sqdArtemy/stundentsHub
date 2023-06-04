@@ -71,17 +71,18 @@ class CommentDetailedView(Resource):
         if not comment:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
 
-        parser.add_argument("comment_text")
+        print("wtf")
+        parser.add_argument("comment_text", location="form")
         data = parser.parse_args()
-        data["comment_modified_at"] = datetime.utcnow()
+        data["comment_modified_at"] = str(datetime.utcnow())
         data = {key: value for key, value in data.items() if value}
 
         try:
             updated_comment = self.comment_update_schema.load(data)
-            for key, value in updated_comment.items:
+            for key, value in updated_comment.items():
                 setattr(comment, key, value)
             comment.save_changes()
 
             return jsonify(self.comment_get_schema.dump(comment))
         except ValidationError as e:
-            abort(400, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
