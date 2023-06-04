@@ -2,7 +2,7 @@ from flask_restful import Resource, abort
 from datetime import datetime
 from marshmallow import ValidationError
 from flask import jsonify, make_response
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Comment
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema
 from app_init import parser
@@ -25,11 +25,10 @@ class CommentListView(Resource):
     @jwt_required()
     def post(self):
         parser.add_argument("comment_text", location="form")
-        parser.add_argument("comment_author", location="form")
         parser.add_argument("comment_post", location="form")
         data = parser.parse_args()
-        data["comment_created_at"] = datetime.utcnow()
-        data["comment_modified_at"] = None
+        data["comment_author"] = get_jwt_identity()
+        data["comment_created_at"] = str(datetime.utcnow())
 
         try:
             comment = self.comment_create_schema.load(data)
@@ -74,7 +73,7 @@ class CommentDetailedView(Resource):
         parser.add_argument("comment_text")
         data = parser.parse_args()
         data["comment_modified_at"] = datetime.utcnow()
-        data = {key: value for key,value in data.items() if value}
+        data = {key: value for key, value in data.items() if value}
 
         try:
             updated_comment = self.comment_update_schema.load(data)

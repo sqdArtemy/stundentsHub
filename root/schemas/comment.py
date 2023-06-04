@@ -36,13 +36,11 @@ class CommentGetSchema(ma.SQLAlchemyAutoSchema):
 class CommentCreateSchema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
     comment_text = fields.Str(required=True, validate=validate.Length(min=1, max=250))
     comment_created_at = fields.DateTime(required=True)
-    comment_modified_at = fields.DateTime(required=False)
     comment_author = fields.Integer(required=False)
     comment_post = fields.Integer(required=False)
 
     class Meta:
         model = Comment
-        ordered = True
         fields = ("comment_text", "comment_created_at", "comment_modified_at", "comment_author", "comment_post")
         include_relationships = True
         load_instance = True

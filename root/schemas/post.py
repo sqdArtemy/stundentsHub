@@ -1,4 +1,5 @@
 from marshmallow import fields, validate, validates, ValidationError
+from .comment import CommentGetSchema
 from models import Post, User
 from app_init import ma
 from checkers import instance_exists_by_id
@@ -19,6 +20,7 @@ class PostSchemaMixin:
 
 
 class PostGetSchema(ma.SQLAlchemyAutoSchema):
+    post_comments = fields.Nested(CommentGetSchema, many=True)
     class Meta:
         model = Post
         ordered = True
@@ -32,12 +34,10 @@ class PostCreateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
     post_heading = fields.Str(required=True, validate=validate.Length(min=10, max=100))
     post_text = fields.Str(required=True, validate=validate.Length(min=10, max=2500))
     post_created_at = fields.DateTime(required=True)
-    post_modified_at = fields.DateTime(required=True)
     post_author = fields.Integer(required=True)
 
     class Meta:
         model = Post
-        ordered = True
         fields = ("post_heading", "post_text", "post_created_at", "post_modified_at", "post_author")
         include_relationships = True
         load_instance = True

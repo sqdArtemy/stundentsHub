@@ -22,8 +22,23 @@ class Comment(db.Model):
             "comment_post": self.comment_post.post_id
         }
 
-    def __init__(self, comment_text: str, comment_created_at: str, comment_modified_at: str):
+    def create(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    @staticmethod
+    def save_changes():
+        db.session.commit()
+
+    def __init__(self, comment_text: str, comment_created_at: str, comment_author: int,
+                 comment_post: int, comment_modified_at=None):
         self.comment_text = comment_text
+        self.comment_author = comment_author
+        self.comment_post = comment_post
         self.comment_created_at = comment_created_at
         self.comment_modified_at = comment_modified_at
 

@@ -42,7 +42,7 @@ def is_date_valid(date: str):
 
 
 def is_datetime_valid(datetime: str):
-    datetime_regexp = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}[+-]\d{2}:\d{2}$"
+    datetime_regexp = r"^(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2}):(\d{2})\.(\d{6})$"
     if not re.match(datetime_regexp, datetime):
         raise ValidationError("Entered date and time has invalid format.")
 

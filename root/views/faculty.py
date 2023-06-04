@@ -23,8 +23,8 @@ class FacultyListView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def post(self):
-        parser.add("faculty_name", location="form")
-        parser.add("faculty_university", location="form")
+        parser.add_argument("faculty_name", location="form")
+        parser.add_argument("faculty_university", location="form")
         data = parser.parse_args()
 
         try:
@@ -67,8 +67,8 @@ class FacultyDetailedView(Resource):
         if not instance_exists(faculty):
             abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
 
-        parser.add("faculty_name", location="form")
-        parser.add("faculty_university", location="form")
+        parser.add_argument("faculty_name", location="form")
+        parser.add_argument("faculty_university", location="form")
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
 

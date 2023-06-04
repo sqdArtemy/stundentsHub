@@ -1,13 +1,13 @@
 from flask_restful import Resource, abort
 from datetime import datetime
 from marshmallow import ValidationError
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import jsonify, make_response
 from models import Post
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists, is_authorized_error_handler
+from checkers import instance_exists, is_authorized_error_handler, is_datetime_valid
 
 
 class PostListView(Resource):
@@ -26,10 +26,9 @@ class PostListView(Resource):
     def post(self):
         parser.add_argument("post_heading", location="form")
         parser.add_argument("post_text", location="form")
-        parser.add_argument("post_author", location="form")
         data = parser.parse_args()
-        data["post_created_at"] = datetime.utcnow()
-        data["post_modified_at"] = None
+        data["post_author"] = get_jwt_identity()
+        data["post_created_at"] = str(datetime.utcnow())
 
         try:
             post = self.post_create_schema.load(data)
