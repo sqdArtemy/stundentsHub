@@ -1,3 +1,4 @@
+import http_codes
 from flask_restful import Resource, abort
 from datetime import datetime
 from marshmallow import ValidationError
@@ -7,7 +8,7 @@ from models import Comment
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists, is_authorized_error_handler
+from checkers import is_authorized_error_handler
 
 
 class CommentListView(Resource):
@@ -25,7 +26,7 @@ class CommentListView(Resource):
     @jwt_required()
     def post(self):
         parser.add_argument("comment_text", location="form")
-        parser.add_argument("comment_post", location="form")
+        parser.add_argument("comment_post", type=int, location="form")
         data = parser.parse_args()
         data["comment_author"] = get_jwt_identity()
         data["comment_created_at"] = str(datetime.utcnow())
@@ -34,9 +35,9 @@ class CommentListView(Resource):
             comment = self.comment_create_schema.load(data)
             comment.create()
 
-            return make_response(jsonify(self.comment_get_schema.dump(comment)),201)
+            return make_response(jsonify(self.comment_get_schema.dump(comment)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
-            abort(400, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 class CommentDetailedView(Resource):
@@ -47,8 +48,8 @@ class CommentDetailedView(Resource):
     @jwt_required()
     def get(self, comment_id):
         comment = Comment.query.get(comment_id)
-        if not instance_exists(comment):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
+        if not comment:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
 
         return jsonify(self.comment_get_schema.dump(comment))
 
@@ -57,18 +58,18 @@ class CommentDetailedView(Resource):
     @jwt_required()
     def delete(cls, comment_id):
         comment = Comment.query.get(comment_id)
-        if not instance_exists(comment):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
+        if not comment:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
         comment.delete()
 
-        return {"success": OBJECT_DELETED.format("Comment", comment_id)}
+        return {"success": OBJECT_DELETED.format("Comment", comment_id)}, http_codes.HTTP_NO_CONTENT_204
 
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, comment_id):
         comment = Comment.query.get(comment_id)
-        if not instance_exists(comment):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
+        if not comment:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
 
         parser.add_argument("comment_text")
         data = parser.parse_args()

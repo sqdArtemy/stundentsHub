@@ -11,13 +11,6 @@ class University(db.Model):
     university_users = db.relationship("User", backref="university", cascade="all, delete", lazy=True)
     university_faculties = db.relationship("Faculty", backref="university", cascade="all, delete", lazy=True)
 
-    def serialize(self):
-        return {
-            "university_id": self.universoty_id,
-            "university_name": self.university_name,
-            "university_email": self.university_email,
-            "university_phone": self.university_phone
-        }
 
     def create(self):
         db.session.add(self)

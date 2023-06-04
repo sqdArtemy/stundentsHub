@@ -1,3 +1,4 @@
+import http_codes
 from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
@@ -7,7 +8,7 @@ from models import User
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists, is_authorized_error_handler
+from checkers import is_authorized_error_handler
 
 
 class UserRegisterView(Resource):
@@ -33,9 +34,9 @@ class UserRegisterView(Resource):
             user = self.user_create_schema.load(data)
             user.create()
 
-            return make_response(jsonify(self.user_get_schema.dump(user)), 201)
+            return make_response(jsonify(self.user_get_schema.dump(user)), http_codes.HTTP_OK_200)
         except ValidationError as e:
-            abort(400, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 class UserLoginView(Resource):
@@ -46,7 +47,7 @@ class UserLoginView(Resource):
         data = parser.parse_args()
 
         user = User.query.filter_by(user_email=data.get("email")).first()
-        if instance_exists(user):
+        if user:
             is_password_correct = check_password_hash(user.user_password, data.get("password"))
 
             if is_password_correct:
@@ -58,8 +59,9 @@ class UserLoginView(Resource):
                         "access_token": access_token,
                         "refresh_token": refresh_token
                     }
-                }, 200
-        return {"error": "Wrong credentials."}, 400
+                }, http_codes.HTTP_CREATED_201
+        return {"error": "Wrong credentials, try again."}, http_codes.HTTP_BAD_REQUEST_400
+
 
 class UserListViewSet(Resource):
     users_schema = UserGetSchema(many=True)
@@ -79,8 +81,8 @@ class UserDetailedViewSet(Resource):
     @jwt_required()
     def get(self, user_id: int):
         user = User.query.get(user_id)
-        if not instance_exists(user):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+        if not user:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
 
         return jsonify(self.user_get_schema.dump(user))
 
@@ -89,18 +91,18 @@ class UserDetailedViewSet(Resource):
     @jwt_required()
     def delete(cls, user_id: int):
         user = User.query.get(user_id)
-        if not instance_exists(user):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+        if not user:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
         user.delete()
 
-        return {"success": OBJECT_DELETED.format("User", user_id)}, 200
+        return {"success": OBJECT_DELETED.format("User", user_id)}, http_codes.HTTP_NO_CONTENT_204
 
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, user_id: int):
         user = User.query.get(user_id)
-        if not instance_exists(user):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+        if not user:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
 
         parser.add_argument("user_name", required=False, location="form")
         parser.add_argument("user_surname", required=False, location="form")
@@ -125,4 +127,4 @@ class UserDetailedViewSet(Resource):
 
             return jsonify(self.user_get_schema.dump(user))
         except ValidationError as e:
-            abort(400, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

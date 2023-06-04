@@ -23,8 +23,9 @@ class Faculty(db.Model):
     def save_changes():
         db.session.commit()
 
-    def __init__(self, faculty_name: str):
+    def __init__(self, faculty_name: str, faculty_university: int):
         self.faculty_name = faculty_name
+        self.faculty_university = faculty_university
 
     def __repr__(self):
         return f"{self.faculty_name}"

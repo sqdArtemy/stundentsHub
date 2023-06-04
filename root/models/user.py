@@ -41,7 +41,9 @@ class User(db.Model):
                 user_card_id: str,
                 user_birthday: str,
                 user_tg_link: str,
-                user_enrolment_year: str
+                user_enrolment_year: str,
+                user_university: int,
+                user_faculty: int
                 ):
         self.user_name = user_name
         self.user_surname = user_surname
@@ -50,6 +52,8 @@ class User(db.Model):
         self.user_birthday = user_birthday
         self.user_enrolment_year = user_enrolment_year
         self.user_tg_link = user_tg_link
+        self.user_university = user_university
+        self.user_faculty = user_faculty
 
     def __repr__(self):
         return f"{self.user_name}: {self.user_email}"

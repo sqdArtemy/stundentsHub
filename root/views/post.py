@@ -1,3 +1,4 @@
+import http_codes
 from flask_restful import Resource, abort
 from datetime import datetime
 from marshmallow import ValidationError
@@ -7,7 +8,7 @@ from models import Post
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists, is_authorized_error_handler, is_datetime_valid
+from checkers import is_authorized_error_handler
 
 
 class PostListView(Resource):
@@ -34,9 +35,9 @@ class PostListView(Resource):
             post = self.post_create_schema.load(data)
             post.create()
 
-            return make_response(jsonify(self.post_get_schema.dump(post)), 201)
+            return make_response(jsonify(self.post_get_schema.dump(post)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
-            abort(400, error_message=e)
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 class PostDetailedView(Resource):
@@ -47,8 +48,8 @@ class PostDetailedView(Resource):
     @jwt_required()
     def get(self, post_id: int):
         post = Post.query.get(post_id)
-        if not instance_exists(post):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+        if not post:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
         return jsonify(self.post_get_schema.dump(post))
 
     @classmethod
@@ -56,18 +57,18 @@ class PostDetailedView(Resource):
     @jwt_required()
     def delete(cls, post_id: int):
         post = Post.query.get(post_id)
-        if not instance_exists(post):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+        if not post:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
         post.delete()
 
-        return {"success": OBJECT_DELETED.format("Post", post_id)}, 200
+        return {"success": OBJECT_DELETED.format("Post", post_id)}, http_codes.HTTP_NO_CONTENT_204
 
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, post_id: int):
         post = Post.query.get(post_id)
-        if not instance_exists(post):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+        if not post:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
 
         parser.add_argument("post_heading", location="form")
         parser.add_argument("post_text", location="form")
@@ -83,4 +84,4 @@ class PostDetailedView(Resource):
 
             return jsonify(self.post_get_schema.dump(post))
         except ValidationError as e:
-            abort(404, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

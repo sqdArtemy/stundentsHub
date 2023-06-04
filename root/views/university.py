@@ -1,12 +1,13 @@
+import http_codes
 from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required
 from models import University
-from schemas import UniversityGetSchema, UniversityCreateSchema,UniversityUpdateSchema
+from schemas import UniversityGetSchema, UniversityCreateSchema, UniversityUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists, is_authorized_error_handler
+from checkers import is_authorized_error_handler
 
 
 class UniversityListView(Resource):
@@ -32,9 +33,9 @@ class UniversityListView(Resource):
             university = self.university_create_schema.load(data)
             university.create()
 
-            return make_response(jsonify(self.university_get_schema.dump(university)), 201)
+            return make_response(jsonify(self.university_get_schema.dump(university)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
-            abort(400, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 class UniversityDetailedView(Resource):
@@ -45,8 +46,9 @@ class UniversityDetailedView(Resource):
     @jwt_required()
     def get(self, university_id: int):
         university = University.query.get(university_id)
-        if not instance_exists(university):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
+        if not university:
+            abort(http_codes.HTTP_NOT_FOUND_404,
+                  error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
 
         return jsonify(self.university_get_schema.dump(university))
 
@@ -55,8 +57,9 @@ class UniversityDetailedView(Resource):
     @jwt_required()
     def delete(cls, university_id: int):
         university = University.query.get(university_id)
-        if not instance_exists(university):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
+        if not university:
+            abort(http_codes.HTTP_NOT_FOUND_404,
+                  error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
         university.delete()
 
         return {"success": OBJECT_DELETED.format("University", university_id)}, 200
@@ -65,8 +68,9 @@ class UniversityDetailedView(Resource):
     @jwt_required()
     def put(self, university_id: int):
         university = University.query.get(university_id)
-        if not instance_exists(university):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
+        if not university:
+            abort(http_codes.HTTP_NOT_FOUND_404,
+                  error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
 
         parser.add_argument("university_name", required=False, location="form")
         parser.add_argument("university_email", required=False, location="form")
@@ -82,4 +86,4 @@ class UniversityDetailedView(Resource):
 
             return jsonify(self.university_get_schema.dump(university))
         except ValidationError as e:
-            abort(400, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

@@ -1,3 +1,4 @@
+import http_codes
 from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
@@ -6,7 +7,7 @@ from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
 from app_init import parser
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists, is_authorized_error_handler
+from checkers import is_authorized_error_handler
 
 
 class RoleListViewSet(Resource):
@@ -30,9 +31,9 @@ class RoleListViewSet(Resource):
             role = self.role_create_schema.load(data)
             role.create()
 
-            return make_response(jsonify(self.role_get_schema.dump(role)), 201)
+            return make_response(jsonify(self.role_get_schema.dump(role)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
-            abort(400, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 class RoleDetailedViewSet(Resource):
@@ -43,8 +44,8 @@ class RoleDetailedViewSet(Resource):
     @jwt_required()
     def get(self, role_id: int):
         role = Role.query.get(role_id)
-        if not instance_exists(role):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
+        if not role:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
         return jsonify(self.role_get_schema.dump(role))
 
     @classmethod
@@ -52,18 +53,18 @@ class RoleDetailedViewSet(Resource):
     @jwt_required()
     def delete(cls, role_id: int):
         role = Role.query.get(role_id)
-        if not instance_exists(role):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
+        if not role:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
         role.delete()
 
-        return {"success": OBJECT_DELETED.format("Role", role_id)}, 200
+        return {"success": OBJECT_DELETED.format("Role", role_id)}, http_codes.HTTP_NO_CONTENT_204
 
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, role_id: int):
         role = Role.query.get(role_id)
-        if not instance_exists(role):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
+        if not role:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
 
         parser.add_argument("role_name", location="form")
         data = parser.parse_args()
@@ -77,4 +78,4 @@ class RoleDetailedViewSet(Resource):
 
             return jsonify(self.role_get_schema.dump(role))
         except ValidationError as e:
-            abort(400, error_message=str(e))
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

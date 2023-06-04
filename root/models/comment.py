@@ -12,16 +12,6 @@ class Comment(db.Model):
     comment_author = db.Column(db.Integer, db.ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     comment_post = db.Column(db.Integer, db.ForeignKey("posts.post_id", ondelete="CASCADE"), nullable=False)
 
-    def serialize(self):
-        return {
-            "comment_id": self.comment_id,
-            "comment_text": self.comment_text,
-            "comment_created_at": self.comment_created_at,
-            "comment_modified_at":  self.comment_modified_at,
-            "comment_author": self.comment_author.user_id,
-            "comment_post": self.comment_post.post_id
-        }
-
     def create(self):
         db.session.add(self)
         db.session.commit()

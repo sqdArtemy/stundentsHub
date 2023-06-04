@@ -1,3 +1,4 @@
+import http_codes
 from flask_restful import Resource, abort
 from marshmallow import ValidationError
 from flask import jsonify, make_response
@@ -6,7 +7,7 @@ from models import Faculty
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import instance_exists, is_authorized_error_handler
+from checkers import is_authorized_error_handler
 
 
 class FacultyListView(Resource):
@@ -24,16 +25,16 @@ class FacultyListView(Resource):
     @jwt_required()
     def post(self):
         parser.add_argument("faculty_name", location="form")
-        parser.add_argument("faculty_university", location="form")
+        parser.add_argument("faculty_university", type=int, location="form")
         data = parser.parse_args()
 
         try:
             faculty = self.faculty_create_schema.load(data)
             faculty.create()
 
-            return make_response(jsonify(self.faculty_get_schema.dump(faculty)), 201)
+            return make_response(jsonify(self.faculty_get_schema.dump(faculty)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
-            abort(400, error_mesage=e)
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_mesage=str(e))
 
 
 class FacultyDetailedView(Resource):
@@ -44,8 +45,8 @@ class FacultyDetailedView(Resource):
     @jwt_required()
     def get(self, faculty_id: int):
         faculty = Faculty.query.get(faculty_id)
-        if not instance_exists(faculty):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
+        if not faculty:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
 
         return jsonify(self.faculty_get_schema.dump(faculty))
 
@@ -54,21 +55,21 @@ class FacultyDetailedView(Resource):
     @jwt_required()
     def delete(cls, faculty_id: int):
         faculty = Faculty.query.get(faculty_id)
-        if not instance_exists(faculty):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
+        if not faculty:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
         faculty.delete()
 
-        return {"success": OBJECT_DELETED.format("Faculty", faculty_id)}, 200
+        return {"success": OBJECT_DELETED.format("Faculty", faculty_id)}, http_codes.HTTP_NO_CONTENT_204
 
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, faculty_id: int):
         faculty = Faculty.query.get(faculty_id)
-        if not instance_exists(faculty):
-            abort(404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
+        if not faculty:
+            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
 
         parser.add_argument("faculty_name", location="form")
-        parser.add_argument("faculty_university", location="form")
+        parser.add_argument("faculty_university", type=int, location="form")
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
 

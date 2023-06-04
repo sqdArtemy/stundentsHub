@@ -3,27 +3,24 @@ This module contains functions which are used to check conditions
 I did it in separate module, because these functions are used throughout whole project
 """
 import re
+import http_codes
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask import current_app
 from flask_restful import abort
 from marshmallow import ValidationError
 
 
-def instance_exists(instance) -> bool:
-    return instance is not None
-
-
 def instance_exists_by_id(_id: int, model) -> bool:
     return model.query.get(_id) is not None
 
 
-def is_email_valid(email: str) -> ValidationError:
+def is_email_valid(email: str):
     email_regexp = r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"
     if not re.match(email_regexp, email):
         raise ValidationError("Entered email is invalid.")
 
 
-def is_phone_valid(phone: str) -> ValidationError:
+def is_phone_valid(phone: str):
     phone_regexp = r"^\+[\d]+$"
     if not re.match(phone_regexp, phone):
         raise ValidationError("Entered phone number is invalid")
@@ -47,13 +44,14 @@ def is_datetime_valid(datetime: str):
         raise ValidationError("Entered date and time has invalid format.")
 
 
+# Changes the warning message if user is not authorized
 def is_authorized_error_handler():
     def decorate(function):
         def wrapper(*args, **kwargs):
             try:
                 return current_app.ensure_sync(function)(*args, **kwargs)
             except NoAuthorizationError:
-                abort(403, error_message="User is not authorized.")
+                abort(http_codes.HTTP_FORBIDDEN_403, error_message="User is not authorized.")
 
         return wrapper
 
