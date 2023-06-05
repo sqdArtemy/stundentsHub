@@ -5,7 +5,7 @@ from marshmallow import ValidationError
 from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Comment, User
-from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema
+from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
 from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from checkers import is_authorized_error_handler
@@ -27,12 +27,21 @@ class CommentListView(Resource):
     def post(self):
         parser.add_argument("comment_text", location="form")
         parser.add_argument("comment_post", type=int, location="form")
+        parser.add_argument("comment_parent", type=int, location="form")
         data = parser.parse_args()
-        data["comment_author"] = get_jwt_identity()
+        data["comment_parent"] = CommentGetSchema().dump(Comment.query.get(data["comment_parent"]))
+        data["comment_author"] = UserGetSchema(only=("user_id",)).dump(User.query.get(get_jwt_identity()))
         data["comment_created_at"] = str(datetime.utcnow())
+
+        from pprint import pprint
+        pprint(data)
 
         try:
             comment = self.comment_create_schema.load(data)
+
+            if comment.comment_post != comment.parent_comment.comment_post:
+                abort(http_codes.HTTP_FORBIDDEN_403, error_message="Parent comment has different post.")
+
             comment.create()
 
             return make_response(jsonify(self.comment_get_schema.dump(comment)), http_codes.HTTP_CREATED_201)

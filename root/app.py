@@ -20,8 +20,8 @@ api.add_resource(RoleDetailedViewSet, "/user_role/<int:role_id>")
 # User urls
 api.add_resource(UserListViewSet, "/users")
 api.add_resource(UserDetailedViewSet, "/user/<int:user_id>")
-api.add_resource(UserRegisterView, "/register")
-api.add_resource(UserLoginView, "/login")
+api.add_resource(UserRegisterView, "/user/register")
+api.add_resource(UserLoginView, "/user/login")
 # University urls
 api.add_resource(UniversityListView, "/universities")
 api.add_resource(UniversityDetailedView, "/university/<int:university_id>")

@@ -1,8 +1,9 @@
-from marshmallow import fields, validate, post_load, validates, ValidationError
+from marshmallow import fields, validate, post_load, validates, ValidationError, EXCLUDE
 from werkzeug.security import generate_password_hash
 from models import User, Role, Faculty, University
 from app_init import ma
 from checkers import is_email_valid, instance_exists_by_id, is_phone_valid, is_name_valid
+from db_init import db
 
 
 class UserSchemaMixin:
@@ -61,6 +62,8 @@ class UserGetSchema(ma.SQLAlchemyAutoSchema):
                   "user_tg_link", "user_phone")
         include_relationships = True
         load_instance = True
+        unknown = EXCLUDE
+        sqla_session = db.session
 
 
 class UserCreateSchema(ma.SQLAlchemyAutoSchema, UserSchemaMixin):
@@ -82,6 +85,7 @@ class UserCreateSchema(ma.SQLAlchemyAutoSchema, UserSchemaMixin):
         fields = ("user_name", "user_surname", "user_email", "user_password", "user_card_id",
                   "user_birthday", "user_role", "user_faculty", "user_university", "user_enrolment_year",
                   "user_tg_link", "user_phone")
+        unknown = EXCLUDE
         include_relationships = True
         load_instance = True
 
@@ -94,3 +98,4 @@ class UserUpdateSchema(ma.SQLAlchemyAutoSchema, UserSchemaMixin):
                   "user_tg_link", "user_phone")
         include_relationships = True
         load_instance = False
+        unknown = EXCLUDE

@@ -1,4 +1,4 @@
-from marshmallow import fields, validate, validates, ValidationError, pre_load
+from marshmallow import fields, validate, validates, ValidationError, EXCLUDE
 from .comment import CommentGetSchema
 from .user import UserGetSchema
 from models import Post, User
@@ -32,6 +32,7 @@ class PostGetSchema(ma.SQLAlchemyAutoSchema):
         include_relationships = True
         load_instance = True
         include_fk = True
+        unknown = EXCLUDE
 
 
 class PostCreateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
@@ -45,6 +46,7 @@ class PostCreateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
         fields = ("post_heading", "post_text", "post_created_at", "post_modified_at", "post_author")
         include_relationships = True
         load_instance = True
+        unknown = EXCLUDE
 
 
 class PostUpdateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
@@ -54,3 +56,4 @@ class PostUpdateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
         fields = ("post_heading", "post_text", "post_modified_at")
         include_relationships = True
         load_instance = False
+        unknown = EXCLUDE

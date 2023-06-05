@@ -1,4 +1,4 @@
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 from models import Role
 from app_init import ma
 from checkers import is_name_valid
@@ -9,6 +9,7 @@ class RoleGetSchema(ma.SQLAlchemyAutoSchema):
         model = Role
         fields = ("role_id", "role_name")
         ordered = True
+        unknown = EXCLUDE
 
 
 class RoleCreateSchema(ma.SQLAlchemyAutoSchema):
@@ -19,6 +20,7 @@ class RoleCreateSchema(ma.SQLAlchemyAutoSchema):
         fields = ["role_name"]
         ordered = True
         load_instance = True
+        unknown = EXCLUDE
 
 
 class RoleUpdateSchema(RoleGetSchema):

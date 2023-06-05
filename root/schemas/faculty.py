@@ -1,4 +1,4 @@
-from marshmallow import fields, validates, ValidationError
+from marshmallow import fields, validates, ValidationError, EXCLUDE
 from models import Faculty, University
 from app_init import ma
 from checkers import is_name_valid, instance_exists_by_id
@@ -19,6 +19,7 @@ class FacultyGetSchema(ma.SQLAlchemyAutoSchema):
         model = Faculty
         fields = ("faculty_id", "faculty_name", "faculty_university")
         ordered = True
+        unknown = EXCLUDE
 
 
 class FacultyUpdateSchema(ma.SQLAlchemyAutoSchema, FacultySchemaMixin):
@@ -26,6 +27,7 @@ class FacultyUpdateSchema(ma.SQLAlchemyAutoSchema, FacultySchemaMixin):
         model = Faculty
         fields = ("faculty_name", "faculty_university")
         include_relationships = True
+        unknown = EXCLUDE
 
 
 class FacultyCreateSchema(ma.SQLAlchemyAutoSchema, FacultySchemaMixin):
@@ -37,3 +39,4 @@ class FacultyCreateSchema(ma.SQLAlchemyAutoSchema, FacultySchemaMixin):
         fields = ("faculty_name", "faculty_university")
         load_instance = True
         include_relationships = True
+        unknown = EXCLUDE

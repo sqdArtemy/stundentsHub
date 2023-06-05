@@ -1,4 +1,4 @@
-from marshmallow import fields, validates, ValidationError
+from marshmallow import fields, validates, ValidationError, EXCLUDE
 from models import University
 from .faculty import FacultyGetSchema
 from app_init import ma
@@ -17,12 +17,13 @@ class UniversitySchemaMixin:
 
 
 class UniversityGetSchema(ma.SQLAlchemyAutoSchema):
+    university_faculties = fields.Nested(FacultyGetSchema(), many=True)
+
     class Meta:
         model = University
         fields = ("university_id", "university_name", "university_email", "university_phone", "university_faculties")
         include_relationships = True
-
-    university_faculties = fields.Nested(FacultyGetSchema, many=True)
+        unknown = EXCLUDE
 
 
 class UniversityUpdateSchema(ma.SQLAlchemyAutoSchema, UniversitySchemaMixin):
@@ -30,6 +31,7 @@ class UniversityUpdateSchema(ma.SQLAlchemyAutoSchema, UniversitySchemaMixin):
         model = University
         fields = ("university_name", "university_email", "university_phone")
         include_relationships = True
+        unknown = EXCLUDE
 
 
 class UniversityCreateSchema(ma.SQLAlchemyAutoSchema, UniversitySchemaMixin):
@@ -42,3 +44,4 @@ class UniversityCreateSchema(ma.SQLAlchemyAutoSchema, UniversitySchemaMixin):
         fields = ("university_name", "university_email", "university_phone")
         load_instance = True
         include_relationships = True
+        unknown = EXCLUDE
