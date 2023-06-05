@@ -1,6 +1,7 @@
 from marshmallow import fields, validate, validates, ValidationError
 from models import User, Comment, Post
 from app_init import ma
+from .user import UserGetSchema
 from checkers import instance_exists_by_id
 from text_templates import OBJECT_DOES_NOT_EXIST
 
@@ -9,7 +10,7 @@ class CommentSchemaMixin:
     comment_text = fields.Str(required=False, validate=validate.Length(min=1, max=250))
     comment_created_at = fields.DateTime(required=False)
     comment_modified_at = fields.DateTime(required=False)
-    comment_author = fields.Integer(required=False)
+    comment_author = fields.Integer(required=True)
     comment_post = fields.Integer(required=False)
 
     @validates("comment_author")
@@ -24,11 +25,13 @@ class CommentSchemaMixin:
 
 
 class CommentGetSchema(ma.SQLAlchemyAutoSchema):
+    author = fields.Nested(UserGetSchema(only=("user_id", "user_name", "user_surname")), data_key="comment_author")
+
     class Meta:
         model = Comment
         ordered = True
         fields = ("comment_id", "comment_text", "comment_created_at",
-                  "comment_modified_at", "comment_author", "comment_post")
+                  "comment_modified_at", "author", "comment_post")
         include_relationships = True
         load_instance = True
 

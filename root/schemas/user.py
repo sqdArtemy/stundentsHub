@@ -45,7 +45,7 @@ class UserSchemaMixin:
             raise ValidationError(f"Faculty with faculty_id = {value} does not exist.")
 
     @post_load
-    def create_user(self, data, **kwargs) -> User:
+    def create_user_password_hash(self, data, **kwargs):
         if data.get("user_password"):
             data["user_password"] = generate_password_hash(data["user_password"])
 

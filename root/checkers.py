@@ -5,6 +5,7 @@ I did it in separate module, because these functions are used throughout whole p
 import re
 import http_codes
 from flask_jwt_extended.exceptions import NoAuthorizationError
+from jwt.exceptions import ExpiredSignatureError
 from flask import current_app
 from flask_restful import abort
 from marshmallow import ValidationError
@@ -50,8 +51,11 @@ def is_authorized_error_handler():
         def wrapper(*args, **kwargs):
             try:
                 return current_app.ensure_sync(function)(*args, **kwargs)
-            except NoAuthorizationError:
-                abort(http_codes.HTTP_UNAUTHORIZED_401, error_message="User is not authorized.")
+            except (NoAuthorizationError, ExpiredSignatureError) as e:
+                if type(e) is NoAuthorizationError:
+                    abort(http_codes.HTTP_UNAUTHORIZED_401, error_message="User is not authorized.")
+                elif type(e) is ExpiredSignatureError:
+                    abort(http_codes.HTTP_NOT_ACCEPTABLE_406, error_message=str(e))
 
         return wrapper
 

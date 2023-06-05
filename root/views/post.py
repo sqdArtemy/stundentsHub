@@ -50,6 +50,7 @@ class PostDetailedView(Resource):
         post = Post.query.get(post_id)
         if not post:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+
         return jsonify(self.post_get_schema.dump(post))
 
     @classmethod
