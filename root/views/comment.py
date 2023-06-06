@@ -29,9 +29,11 @@ class CommentListView(Resource):
         parser.add_argument("comment_post", type=int, location="form")
         parser.add_argument("comment_parent", type=int, location="form")
         data = parser.parse_args()
-        data["comment_parent"] = CommentGetSchema().dump(Comment.query.get(data["comment_parent"]))
+
         data["comment_author"] = UserGetSchema(only=("user_id",)).dump(User.query.get(get_jwt_identity()))
         data["comment_created_at"] = str(datetime.utcnow())
+        if data["comment_parent"]:
+            data["comment_parent"] = CommentGetSchema().dump(Comment.query.get(data["comment_parent"]))
 
         from pprint import pprint
         pprint(data)
@@ -39,7 +41,7 @@ class CommentListView(Resource):
         try:
             comment = self.comment_create_schema.load(data)
 
-            if comment.comment_post != comment.parent_comment.comment_post:
+            if comment.comment_parent and comment.comment_post != comment.parent_comment.comment_post:
                 abort(http_codes.HTTP_FORBIDDEN_403, error_message="Parent comment has different post.")
 
             comment.create()
