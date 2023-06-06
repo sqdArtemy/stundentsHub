@@ -1,4 +1,4 @@
-from .user import UserRegisterView, UserListViewSet, UserDetailedViewSet, UserLoginView
+from .user import UserRegisterView, UserListViewSet, UserDetailedViewSet, UserLoginView, UserChangePassword
 from .role import RoleDetailedViewSet, RoleListViewSet
 from .university import UniversityListView, UniversityDetailedView
 from .faculty import FacultyListView, FacultyDetailedView

@@ -2,18 +2,17 @@ import http_codes
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
 from flask import jsonify, make_response
-from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required
+from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash
 from models import User
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
-from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from checkers import is_authorized_error_handler
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("user_name", location="form")
 parser.add_argument("user_surname", location="form")
 parser.add_argument("user_email", location="form")
-parser.add_argument("user_password", location="form")
 parser.add_argument("user_card_id", location="form")
 parser.add_argument("user_birthday", location="form")
 parser.add_argument("user_role", type=int, location="form")
@@ -29,6 +28,7 @@ class UserRegisterView(Resource):
     user_get_schema = UserGetSchema()
 
     def post(self):
+        parser.add_argument("user_password", location="form")
         data = parser.parse_args()
 
         try:
@@ -63,6 +63,47 @@ class UserLoginView(Resource):
                     }
                 }, http_codes.HTTP_CREATED_201
         return {"error": "Wrong credentials, try again."}, http_codes.HTTP_BAD_REQUEST_400
+
+
+class UserChangePassword(Resource):
+    user_update_schema = UserUpdateSchema()
+
+    @is_authorized_error_handler()
+    @jwt_required()
+    def put(self, user_id):
+        user = User.query.get(user_id)
+
+        if not user:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+
+        requester = User.query.get(get_jwt_identity())
+
+        if requester is not user:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=OBJECT_EDIT_NOT_ALLOWED.format("User"))
+
+        parser_change_pw = reqparse.RequestParser(bundle_errors=True)
+        parser_change_pw.add_argument("old_password", required=True, location="form")
+        parser_change_pw.add_argument("new_password", required=True, location="form")
+        parser_change_pw.add_argument("new_password_repeated", required=True, location="form")
+        data = parser_change_pw.parse_args()
+
+        if data["new_password"] != data["new_password_repeated"]:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message="New password fields do not match.")
+
+        if data["new_password"] == data["old_password"]:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message="New password can not be the same as the old one.")
+
+        data = {"user_password": data["new_password"]}
+
+        try:
+            updated_user = self.user_update_schema.load(data)
+            for key, value in updated_user.items():
+                setattr(key, value, user)
+            user.save_changes()
+
+            return {"success": "Password was changed successfully."}
+        except ValidationError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 class UserListViewSet(Resource):
@@ -105,6 +146,10 @@ class UserDetailedViewSet(Resource):
         user = User.query.get(user_id)
         if not user:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+
+        requester = User.query.get(get_jwt_identity())
+        if requester is not user:
+            abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("User"))
 
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
