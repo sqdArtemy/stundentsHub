@@ -1,14 +1,17 @@
 import http_codes
-from flask_restful import Resource, abort
+from flask_restful import Resource, abort, reqparse
 from datetime import datetime
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import jsonify, make_response
 from models import Post, User
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
-from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from checkers import is_authorized_error_handler
+
+parser = reqparse.RequestParser(bundle_errors=True)
+parser.add_argument("post_heading", location="form")
+parser.add_argument("post_text", location="form")
 
 
 class PostListView(Resource):
@@ -25,8 +28,6 @@ class PostListView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def post(self):
-        parser.add_argument("post_heading", location="form")
-        parser.add_argument("post_text", location="form")
         data = parser.parse_args()
         data["post_author"] = get_jwt_identity()
         data["post_created_at"] = str(datetime.utcnow())
@@ -80,8 +81,6 @@ class PostDetailedView(Resource):
         if editor is not post.author:
             abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("post"))
 
-        parser.add_argument("post_heading", location="form")
-        parser.add_argument("post_text", location="form")
         data = parser.parse_args()
         data["post_modified_at"] = str(datetime.utcnow())
         data = {key: value for key, value in data.items() if value}

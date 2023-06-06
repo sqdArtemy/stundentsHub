@@ -1,14 +1,27 @@
 import http_codes
-from flask_restful import Resource, abort
+from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
 from flask import jsonify, make_response
 from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required
 from werkzeug.security import check_password_hash
 from models import User
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
-from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import is_authorized_error_handler
+
+parser = reqparse.RequestParser(bundle_errors=True)
+parser.add_argument("user_name", location="form")
+parser.add_argument("user_surname", location="form")
+parser.add_argument("user_email", location="form")
+parser.add_argument("user_password", location="form")
+parser.add_argument("user_card_id", location="form")
+parser.add_argument("user_birthday", location="form")
+parser.add_argument("user_role", type=int, location="form")
+parser.add_argument("user_faculty", type=int, location="form")
+parser.add_argument("user_university", type=int, location="form")
+parser.add_argument("user_enrolment_year", location="form")
+parser.add_argument("user_tg_link", location="form")
+parser.add_argument("user_phone", location="form")
 
 
 class UserRegisterView(Resource):
@@ -16,18 +29,6 @@ class UserRegisterView(Resource):
     user_get_schema = UserGetSchema()
 
     def post(self):
-        parser.add_argument("user_name", location="form")
-        parser.add_argument("user_surname", location="form")
-        parser.add_argument("user_email", location="form")
-        parser.add_argument("user_password", location="form")
-        parser.add_argument("user_card_id", location="form")
-        parser.add_argument("user_birthday", location="form")
-        parser.add_argument("user_role", type=int, location="form")
-        parser.add_argument("user_faculty", type=int, location="form")
-        parser.add_argument("user_university", type=int, location="form")
-        parser.add_argument("user_enrolment_year", location="form")
-        parser.add_argument("user_tg_link", location="form")
-        parser.add_argument("user_phone", location="form")
         data = parser.parse_args()
 
         try:
@@ -42,9 +43,10 @@ class UserRegisterView(Resource):
 class UserLoginView(Resource):
     @classmethod
     def post(cls):
-        parser.add_argument("email", location="form")
-        parser.add_argument("password", location="form")
-        data = parser.parse_args()
+        login_parser = reqparse.RequestParser(bundle_errors=True)
+        login_parser.add_argument("email", location="form")
+        login_parser.add_argument("password", location="form")
+        data = login_parser.parse_args()
 
         user = User.query.filter_by(user_email=data.get("email")).first()
         if user:
@@ -104,18 +106,6 @@ class UserDetailedViewSet(Resource):
         if not user:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
 
-        parser.add_argument("user_name", required=False, location="form")
-        parser.add_argument("user_surname", required=False, location="form")
-        parser.add_argument("user_email", required=False, location="form")
-        parser.add_argument("user_password", required=False, location="form")
-        parser.add_argument("user_card_id", required=False, location="form")
-        parser.add_argument("user_birthday", required=False, location="form")
-        parser.add_argument("user_role", required=False, type=int, location="form")
-        parser.add_argument("user_faculty", required=False, type=int, location="form")
-        parser.add_argument("user_university", required=False, type=int, location="form",)
-        parser.add_argument("user_enrolment_year", required=False, location="form",)
-        parser.add_argument("user_tg_link", required=False, location="form")
-        parser.add_argument("user_phone", required=False, location="form")
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
 

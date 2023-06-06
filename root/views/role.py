@@ -1,13 +1,15 @@
 import http_codes
-from flask_restful import Resource, abort
+from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
 from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required
 from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
-from app_init import parser
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import is_authorized_error_handler
+
+parser = reqparse.RequestParser(bundle_errors=True)
+parser.add_argument("role_name", location="form", help=MSG_MISSING.format("role_name"))
 
 
 class RoleListViewSet(Resource):
@@ -24,7 +26,6 @@ class RoleListViewSet(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def post(self):
-        parser.add_argument("role_name", required=True, location="form", help=MSG_MISSING.format("role_name"))
         data = parser.parse_args()
 
         try:
@@ -66,7 +67,6 @@ class RoleDetailedViewSet(Resource):
         if not role:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
 
-        parser.add_argument("role_name", location="form")
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
 

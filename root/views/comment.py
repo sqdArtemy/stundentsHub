@@ -1,14 +1,16 @@
 import http_codes
-from flask_restful import Resource, abort
+from flask_restful import Resource, abort, reqparse
 from datetime import datetime
 from marshmallow import ValidationError
 from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Comment, User
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
-from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from checkers import is_authorized_error_handler
+
+parser = reqparse.RequestParser(bundle_errors=True)
+parser.add_argument("comment_text", location="form")
 
 
 class CommentListView(Resource):
@@ -25,18 +27,15 @@ class CommentListView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def post(self):
-        parser.add_argument("comment_text", location="form")
-        parser.add_argument("comment_post", type=int, location="form")
-        parser.add_argument("comment_parent", type=int, location="form")
-        data = parser.parse_args()
+        parser_post = parser.copy()
+        parser_post.add_argument("comment_post", type=int, location="form")
+        parser_post.add_argument("comment_parent", type=int, location="form")
+        data = parser_post.parse_args()
 
         data["comment_author"] = UserGetSchema(only=("user_id",)).dump(User.query.get(get_jwt_identity()))
         data["comment_created_at"] = str(datetime.utcnow())
         if data["comment_parent"]:
             data["comment_parent"] = CommentGetSchema().dump(Comment.query.get(data["comment_parent"]))
-
-        from pprint import pprint
-        pprint(data)
 
         try:
             comment = self.comment_create_schema.load(data)
@@ -91,7 +90,6 @@ class CommentDetailedView(Resource):
         if editor is not comment.author:
             abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("comment"))
 
-        parser.add_argument("comment_text", location="form")
         data = parser.parse_args()
         data["comment_modified_at"] = str(datetime.utcnow())
         data = {key: value for key, value in data.items() if value}

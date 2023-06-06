@@ -1,13 +1,16 @@
 import http_codes
-from flask_restful import Resource, abort
+from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
 from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required
 from models import Faculty
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
-from app_init import parser
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from checkers import is_authorized_error_handler
+
+parser = reqparse.RequestParser(bundle_errors=True)
+parser.add_argument("faculty_name", location="form")
+parser.add_argument("faculty_university", type=int, location="form")
 
 
 class FacultyListView(Resource):
@@ -24,8 +27,6 @@ class FacultyListView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def post(self):
-        parser.add_argument("faculty_name", location="form")
-        parser.add_argument("faculty_university", type=int, location="form")
         data = parser.parse_args()
 
         try:
@@ -68,8 +69,6 @@ class FacultyDetailedView(Resource):
         if not faculty:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
 
-        parser.add_argument("faculty_name", location="form")
-        parser.add_argument("faculty_university", type=int, location="form")
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
 
