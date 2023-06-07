@@ -70,22 +70,18 @@ class UserChangePassword(Resource):
 
     @is_authorized_error_handler()
     @jwt_required()
-    def put(self, user_id):
-        user = User.query.get(user_id)
-
-        if not user:
-            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
-
-        requester = User.query.get(get_jwt_identity())
-
-        if requester is not user:
-            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=OBJECT_EDIT_NOT_ALLOWED.format("User"))
+    def put(self):
+        user = User.query.get(get_jwt_identity())
 
         parser_change_pw = reqparse.RequestParser(bundle_errors=True)
         parser_change_pw.add_argument("old_password", required=True, location="form")
         parser_change_pw.add_argument("new_password", required=True, location="form")
         parser_change_pw.add_argument("new_password_repeated", required=True, location="form")
         data = parser_change_pw.parse_args()
+
+        is_password_correct = check_password_hash(user.user_password, data["old_password"])
+        if not is_password_correct:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message="Old password is incorrect, try again.")
 
         if data["new_password"] != data["new_password_repeated"]:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message="New password fields do not match.")
@@ -98,7 +94,7 @@ class UserChangePassword(Resource):
         try:
             updated_user = self.user_update_schema.load(data)
             for key, value in updated_user.items():
-                setattr(key, value, user)
+                setattr(user, key, value)
             user.save_changes()
 
             return {"success": "Password was changed successfully."}

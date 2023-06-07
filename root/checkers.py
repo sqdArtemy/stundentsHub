@@ -15,6 +15,13 @@ def instance_exists_by_id(_id: int, model) -> bool:
     return model.query.get(_id) is not None
 
 
+def is_password_valid(password: str):
+    password_refexp = r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+    if not re.match(password_refexp, password):
+        raise ValidationError("Password should be not less that 8 characters and contains at least 1 uppercase "
+                              "letter, 1 lowercase letter and 1 special symbol.")
+
+
 def is_email_valid(email: str):
     email_regexp = r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"
     if not re.match(email_regexp, email):

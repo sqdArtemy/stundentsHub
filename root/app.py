@@ -15,8 +15,8 @@ cli = FlaskGroup(app)
 from models import User, Role, University, Faculty, Post, Comment
 
 # Role urls
-api.add_resource(RoleListViewSet, "/user_roles")
-api.add_resource(RoleDetailedViewSet, "/user_role/<int:role_id>")
+api.add_resource(RoleListViewSet, "/roles")
+api.add_resource(RoleDetailedViewSet, "/role/<int:role_id>")
 # User urls
 api.add_resource(UserListViewSet, "/users")
 api.add_resource(UserDetailedViewSet, "/user/<int:user_id>")

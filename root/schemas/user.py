@@ -2,7 +2,7 @@ from marshmallow import fields, validate, post_load, validates, ValidationError,
 from werkzeug.security import generate_password_hash
 from models import User, Role, Faculty, University
 from app_init import ma
-from checkers import is_email_valid, instance_exists_by_id, is_phone_valid, is_name_valid
+from checkers import is_email_valid, instance_exists_by_id, is_phone_valid, is_name_valid, is_password_valid
 from db_init import db
 
 
@@ -10,7 +10,7 @@ class UserSchemaMixin:
     user_name = fields.Str(required=False, validate=is_name_valid)
     user_surname = fields.Str(required=False, validate=is_name_valid)
     user_email = fields.Email(required=False, validate=is_email_valid)
-    user_password = fields.Str(required=False, validate=validate.Length(min=6))
+    user_password = fields.Str(required=False, validate=is_password_valid)
     user_card_id = fields.Str(required=False)
     user_birthday = fields.Date(required=False, format="%Y-%m-%d")
     user_role = fields.Integer(required=False)
