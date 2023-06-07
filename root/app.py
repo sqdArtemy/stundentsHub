@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager
 from views import (
     UserRegisterView, UserDetailedViewSet, UserListViewSet, RoleDetailedViewSet, RoleListViewSet,
     UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
-    CommentDetailedView, CommentListView, UserLoginView, RefreshJWTView, UserChangePassword
+    CommentDetailedView, CommentListView, UserLoginView, RefreshJWTView, UserChangePassword, PostRateView
 )
 
 JWTManager(app)
@@ -32,6 +32,7 @@ api.add_resource(FacultyDetailedView, "/faculty/<int:faculty_id>")
 # Post urls
 api.add_resource(PostListView, "/posts")
 api.add_resource(PostDetailedView, "/post/<int:post_id>")
+api.add_resource(PostRateView, "/post/<int:post_id>/rate")
 # Comment urls
 api.add_resource(CommentListView, "/comments")
 api.add_resource(CommentDetailedView, "/comment/<int:comment_id>")

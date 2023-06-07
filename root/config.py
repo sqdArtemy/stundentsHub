@@ -19,6 +19,7 @@ class Config(object):
     SECRET_KEY = get_env_variable("SECRET_KEY")
     JWT_SECRET_KEY = get_env_variable("JWT_SECRET_KEY")
     JWT_BLACKLIST_ENABLED = True
+    JWT_BLACKLIST_TOKEN_CHECKS = ['access', 'refresh']
     JSON_SORT_KEYS = False
     #  Postgres config
     POSTGRES_URL = get_env_variable("POSTGRES_URL")

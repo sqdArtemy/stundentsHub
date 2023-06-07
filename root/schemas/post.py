@@ -27,8 +27,8 @@ class PostGetSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Post
         ordered = True
-        fields = ("post_id", "post_heading", "post_text", "post_created_at", "post_modified_at",
-                  "author", "post_comments")
+        fields = ("post_id", "post_heading", "post_text", "post_rating", "post_likes", "post_dislikes",
+                  "post_created_at", "post_modified_at", "author", "post_comments")
         include_relationships = True
         load_instance = True
         include_fk = True

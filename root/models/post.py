@@ -1,5 +1,20 @@
+from typing import List
 from db_init import db
 from datetime import datetime
+from .user import User
+
+
+user_likes_post = db.Table(
+    "user_likes_post",
+    db.Column("user_id", db.Integer, db.ForeignKey("users.user_id")),
+    db.Column("post_id", db.Integer, db.ForeignKey("posts.post_id"))
+)
+
+user_dislikes_post = db.Table(
+    "user_dislikes_post",
+    db.Column("user_id", db.Integer, db.ForeignKey("users.user_id")),
+    db.Column("post_id", db.Integer, db.ForeignKey("posts.post_id"))
+)
 
 
 class Post(db.Model):
@@ -12,6 +27,11 @@ class Post(db.Model):
     post_modified_at = db.Column(db.DateTime, nullable=True, default=None)
     post_author = db.Column(db.Integer, db.ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     post_comments = db.relationship("Comment", backref="post", cascade="all, delete", lazy=True)
+    post_likes = db.Column(db.Integer, default=0)
+    post_dislikes = db.Column(db.Integer, default=0)
+    post_rating = db.Column(db.Float, default=0)
+    post_liked_by = db.relationship("User", secondary=user_likes_post, backref="user_liked_posts")
+    post_disliked_by = db.relationship("User", secondary=user_dislikes_post, backref="user_disliked_posts")
 
     def create(self):
         db.session.add(self)
