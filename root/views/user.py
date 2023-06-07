@@ -1,7 +1,7 @@
 import http_codes
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
-from flask import jsonify, make_response
+from flask import jsonify, make_response, redirect
 from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash
 from models import User
@@ -100,6 +100,15 @@ class UserChangePassword(Resource):
             return {"success": "Password was changed successfully."}
         except ValidationError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+
+class UserMeView(Resource):
+    user_schema = UserGetSchema()
+
+    @is_authorized_error_handler()
+    @jwt_required()
+    def get(self):
+        return redirect(f"/user/{get_jwt_identity()}")
 
 
 class UserListViewSet(Resource):
