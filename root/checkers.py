@@ -3,6 +3,7 @@ This module contains functions which are used to check conditions
 I did it in separate module, because these functions are used throughout whole project
 """
 import re
+import json
 import http_codes
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from jwt.exceptions import ExpiredSignatureError
@@ -16,10 +17,21 @@ def instance_exists_by_id(_id: int, model) -> bool:
 
 
 def is_password_valid(password: str):
-    password_refexp = r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
-    if not re.match(password_refexp, password):
-        raise ValidationError("Password should be not less that 8 characters and contains at least 1 uppercase "
-                              "letter, 1 lowercase letter and 1 special symbol.")
+    requirements = {
+        "length": (len(password) >= 8, "Password should have a minimum length of 8 characters."),
+        "uppercase": (re.search(r"[A-Z]", password), "Password should contain at least one uppercase letter."),
+        "lowercase": (re.search(r"[a-z]", password), "Password should contain at least one lowercase letter."),
+        "digit": (re.search(r"\d", password), "Password should contain at least one digit."),
+        "special_character": (re.search(r"[@$!%*?&]", password),
+                              "Password should contain at least one special character from the set [@ $ ! % * ? &].")
+    }
+
+    warnings = {key: message for key, (condition, message) in requirements.items() if not condition}
+
+    if warnings:
+        raise ValidationError(warnings)
+
+    return {"success": "Password is strong and meets all the criteria."}
 
 
 def is_email_valid(email: str):

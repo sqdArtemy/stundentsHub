@@ -18,6 +18,7 @@ class Config(object):
     CSRF_ENABLED = True
     SECRET_KEY = get_env_variable("SECRET_KEY")
     JWT_SECRET_KEY = get_env_variable("JWT_SECRET_KEY")
+    JWT_BLACKLIST_ENABLED = True
     JSON_SORT_KEYS = False
     #  Postgres config
     POSTGRES_URL = get_env_variable("POSTGRES_URL")
