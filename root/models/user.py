@@ -1,5 +1,11 @@
 from db_init import db
 
+user_follower = db.Table(
+    "user_follower",
+    db.Column("user_id", db.Integer, db.ForeignKey("users.user_id")),
+    db.Column("follower_id", db.Integer, db.ForeignKey("users.user_id"))
+)
+
 
 class User(db.Model):
     __tablename__ = "users"
@@ -21,6 +27,13 @@ class User(db.Model):
     user_faculty = db.Column(db.Integer, db.ForeignKey("faculties.faculty_id", ondelete="CASCADE"), nullable=True)
     user_posts = db.relationship("Post", backref="author", cascade="all, delete", lazy=True)
     user_comments = db.relationship("Comment", backref="author", cascade="all, delete", lazy=True)
+    user_followers = db.relationship(
+        "User",
+        secondary=user_follower,
+        primaryjoin=(user_follower.c.user_id == user_id),
+        secondaryjoin=(user_follower.c.follower_id == user_id),
+        backref="user_following"
+    )
 
     def create(self):
         db.session.add(self)

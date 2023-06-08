@@ -59,7 +59,7 @@ class UserGetSchema(ma.SQLAlchemyAutoSchema):
         ordered = True
         fields = ("user_id", "user_name", "user_surname", "user_email", "user_card_id",
                   "user_birthday", "user_role", "user_faculty", "user_university", "user_enrolment_year",
-                  "user_tg_link", "user_phone", "user_liked_posts", "user_disliked_posts")
+                  "user_tg_link", "user_phone", "user_followers", "user_following", "user_liked_posts", "user_disliked_posts")
         include_relationships = True
         load_instance = True
         unknown = EXCLUDE
