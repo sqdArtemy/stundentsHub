@@ -14,6 +14,8 @@ class Comment(db.Model):
     comment_parent = db.Column(db.Integer, db.ForeignKey("comments.comment_id", ondelete="CASCADE"), nullable=True)
     comment_child = db.relationship("Comment", backref=db.backref("parent_comment", remote_side="Comment.comment_id"),
                                     cascade="all, delete", lazy=True)
+    comment_image_id = db.Column(db.Integer, db.ForeignKey("files.file_id", ondelete="CASCADE"), nullable=True)
+    comment_image = db.relationship("File", backref="uploaded_in_comment", cascade="all, delete", lazy=True)
 
     def create(self):
         db.session.add(self)
@@ -28,7 +30,7 @@ class Comment(db.Model):
         db.session.commit()
 
     def __init__(self, comment_text: str, comment_created_at: str, comment_post: int,
-                 author, parent_comment, comment_modified_at=None, comment_parent=None):
+                 author, parent_comment, comment_image=None, comment_modified_at=None, comment_parent=None):
         self.comment_text = comment_text
         self.comment_author = author.user_id
         self.comment_post = comment_post
@@ -37,6 +39,9 @@ class Comment(db.Model):
         self.comment_parent = comment_parent
         self.author = author
         self.parent_comment = parent_comment
+        if comment_image:
+            self.comment_image = comment_image
+            self.comment_image_id = comment_image.file_id
 
     def __repr__(self):
         return f"Comment by {self.comment_author} under the post {self.comment_post })"

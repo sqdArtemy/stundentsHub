@@ -13,7 +13,7 @@ JWTManager(app)
 api = Api(app)
 cli = FlaskGroup(app)
 
-from models import User, Role, University, Faculty, Post, Comment
+from models import User, Role, University, Faculty, Post, Comment, File
 
 # Role urls
 api.add_resource(RoleListViewSet, "/roles")

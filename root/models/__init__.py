@@ -4,3 +4,4 @@ from .university import University
 from .faculty import Faculty
 from .post import Post
 from .comment import Comment
+from .file import File

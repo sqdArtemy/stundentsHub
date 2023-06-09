@@ -1,7 +1,5 @@
-from typing import List
 from db_init import db
 from datetime import datetime
-from .user import User
 
 
 user_likes_post = db.Table(
@@ -14,6 +12,12 @@ user_dislikes_post = db.Table(
     "user_dislikes_post",
     db.Column("user_id", db.Integer, db.ForeignKey("users.user_id")),
     db.Column("post_id", db.Integer, db.ForeignKey("posts.post_id"))
+)
+
+post_file = db.Table(
+    "post_file",
+    db.Column("post_id", db.Integer, db.ForeignKey("posts.post_id")),
+    db.Column("file_id", db.Integer, db.ForeignKey("files.file_id"))
 )
 
 
@@ -32,6 +36,9 @@ class Post(db.Model):
     post_rating = db.Column(db.Float, default=0)
     post_liked_by = db.relationship("User", secondary=user_likes_post, backref="user_liked_posts")
     post_disliked_by = db.relationship("User", secondary=user_dislikes_post, backref="user_disliked_posts")
+    post_image_id = db.Column(db.Integer, db.ForeignKey("files.file_id", ondelete="CASCADE"), nullable=True)
+    post_image = db.relationship("File", backref="image_in_post", cascade="all, delete", lazy=True)
+    post_files = db.relationship("File", secondary=post_file, backref="files_in_post")
 
     def create(self):
         db.session.add(self)

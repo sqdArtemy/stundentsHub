@@ -20,6 +20,8 @@ class User(db.Model):
     user_email = db.Column(db.String(150), unique=True, nullable=False)
     user_phone = db.Column(db.String(50), unique=True, nullable=True)
     user_password = db.Column(db.String(250))
+    user_image_id = db.Column(db.Integer, db.ForeignKey("files.file_id", ondelete="CASCADE"), nullable=True)
+    user_image = db.relationship("File", backref="uploaded_by_user", cascade="all, delete", lazy=True)
     user_role = db.Column(db.Integer, db.ForeignKey("user_roles.role_id", ondelete="CASCADE"), nullable=False)
     user_university = db.Column(
         db.Integer, db.ForeignKey("universities.university_id", ondelete="CASCADE"), nullable=False

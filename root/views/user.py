@@ -6,9 +6,9 @@ from flask_jwt_extended import create_refresh_token, create_access_token, jwt_re
 from werkzeug.security import check_password_hash
 from models import User
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
-from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, PAGE_NOT_FOUND
+from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from checkers import is_authorized_error_handler
-from db_init import db
+
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("user_name", location="form")

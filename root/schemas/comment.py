@@ -1,7 +1,9 @@
-from marshmallow import fields, validate, validates, ValidationError, EXCLUDE
+from datetime import datetime
+from marshmallow import fields, validate, validates, ValidationError, EXCLUDE, pre_load
 from models import User, Comment, Post
 from app_init import ma
 from .user import UserGetSchema
+from .file import FileSchema, FileGetSchema
 from checkers import instance_exists_by_id
 from text_templates import OBJECT_DOES_NOT_EXIST
 from db_init import db
@@ -10,9 +12,22 @@ from db_init import db
 class CommentSchemaMixin:
     comment_text = fields.Str(required=False, validate=validate.Length(min=1, max=250))
     comment_created_at = fields.DateTime(required=False)
-    comment_modified_at = fields.DateTime(required=False)
+    comment_modified_at = fields.DateTime(required=False, allow_none=True)
     comment_author = fields.Integer(required=True)
     comment_post = fields.Integer(required=False)
+    comment_image = fields.Nested(FileSchema(), allow_none=True)
+
+    @pre_load
+    def serialize_image(self, data, **kwargs):
+        image_file = data.get("comment_image")
+
+        if data.get("comment_parent"):
+            data["comment_parent"] = CommentGetSchema().dump(Comment.query.get(data["comment_parent"]))
+
+        if image_file:
+            data["comment_image"] = {"file_raw": image_file}
+
+        return data
 
     @validates("comment_author")
     def validate_comment_author(self, value):
@@ -32,14 +47,14 @@ class CommentSchemaMixin:
 
 class CommentGetSchema(ma.SQLAlchemyAutoSchema):
     author = fields.Nested(UserGetSchema(only=("user_id", "user_name", "user_surname")), data_key="comment_author")
-    parent_comment = fields.Nested("CommentGetSchema", data_key="comment_parent",
+    parent_comment = fields.Nested("self", data_key="comment_parent",
                                    exclude=("parent_comment", "comment_post"))
-    comment_parent = fields.Integer(allow_none=True)
+    comment_image = fields.Nested(FileGetSchema())
 
     class Meta:
         model = Comment
         ordered = True
-        fields = ("comment_id", "comment_text", "comment_created_at",
+        fields = ("comment_id", "comment_text", "comment_image", "comment_created_at",
                   "comment_modified_at", "author", "comment_post", "parent_comment")
         include_relationships = True
         load_instance = True
@@ -53,16 +68,16 @@ class CommentCreateSchema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
     comment_created_at = fields.DateTime(required=True)
     comment_post = fields.Integer(required=False)
     author = fields.Nested(UserGetSchema(only=("user_id",)), data_key="comment_author")
-    parent_comment = fields.Nested("CommentCreateSchema", data_key="comment_parent", allow_none=True)
-    comment_parent = fields.Integer(allow_none=True)
+    parent_comment = fields.Nested(CommentGetSchema(exclude=("parent_comment", "comment_post")), data_key="comment_parent", allow_none=True)
 
     class Meta:
         model = Comment
-        fields = ("comment_id", "comment_text", "comment_created_at", "comment_modified_at", "author",
+        fields = ("comment_id", "comment_text", "comment_image", "comment_created_at", "comment_modified_at", "author",
                   "comment_post", "parent_comment")
         include_relationships = True
         load_instance = True
         include_fk = True
+        ordered = True
         sqla_session = db.session
         unknown = EXCLUDE
 
@@ -71,7 +86,9 @@ class CommentUpdateSchema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
     class Meta:
         model = Comment
         ordered = True
-        fields = ("comment_text", "comment_modified_at")
+        fields = ("comment_text", "comment_image", "comment_modified_at")
         include_relationships = True
         load_instance = False
+        include_fk = True
+        sqla_session = db.session
         unknown = EXCLUDE

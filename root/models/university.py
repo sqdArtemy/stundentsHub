@@ -10,7 +10,8 @@ class University(db.Model):
     university_phone = db.Column(db.String(50), nullable=False)
     university_users = db.relationship("User", backref="university", cascade="all, delete", lazy=True)
     university_faculties = db.relationship("Faculty", backref="university", cascade="all, delete", lazy=True)
-
+    university_image_id = db.Column(db.Integer, db.ForeignKey("files.file_id", ondelete="CASCADE"), nullable=True)
+    university_image = db.relationship("File", backref="uploaded_by_uni", cascade="all, delete", lazy=True)
 
     def create(self):
         db.session.add(self)

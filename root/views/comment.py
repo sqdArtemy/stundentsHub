@@ -1,5 +1,7 @@
 import http_codes
+from db_init import db
 from flask_restful import Resource, abort, reqparse
+from werkzeug.datastructures import FileStorage
 from datetime import datetime
 from marshmallow import ValidationError
 from flask import jsonify, make_response
@@ -11,6 +13,7 @@ from checkers import is_authorized_error_handler
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("comment_text", location="form")
+parser.add_argument("comment_image", type=FileStorage, location="files")
 
 
 class CommentListView(Resource):
@@ -34,8 +37,6 @@ class CommentListView(Resource):
 
         data["comment_author"] = UserGetSchema(only=("user_id",)).dump(User.query.get(get_jwt_identity()))
         data["comment_created_at"] = str(datetime.utcnow())
-        if data["comment_parent"]:
-            data["comment_parent"] = CommentGetSchema().dump(Comment.query.get(data["comment_parent"]))
 
         try:
             comment = self.comment_create_schema.load(data)
@@ -43,7 +44,8 @@ class CommentListView(Resource):
             if comment.comment_parent and comment.comment_post != comment.parent_comment.comment_post:
                 abort(http_codes.HTTP_FORBIDDEN_403, error_message="Parent comment has different post.")
 
-            comment.create()
+            db.session.add_all((comment, comment.comment_image))
+            db.session.commit()
 
             return make_response(jsonify(self.comment_get_schema.dump(comment)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
@@ -98,7 +100,10 @@ class CommentDetailedView(Resource):
             updated_comment = self.comment_update_schema.load(data)
             for key, value in updated_comment.items():
                 setattr(comment, key, value)
+
             comment.save_changes()
+            if comment.comment_image:
+                comment.comment_image.create()
 
             return jsonify(self.comment_get_schema.dump(comment))
         except ValidationError as e:
