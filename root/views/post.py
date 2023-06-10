@@ -9,7 +9,7 @@ from models import Post, User
 from db_init import db
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
-from checkers import is_authorized_error_handler
+from utilities import is_authorized_error_handler
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("post_heading", location="form")

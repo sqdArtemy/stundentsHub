@@ -1,10 +1,9 @@
-from datetime import datetime
 from marshmallow import fields, validate, validates, ValidationError, EXCLUDE, pre_load
 from models import User, Comment, Post
 from app_init import ma
 from .user import UserGetSchema
-from .file import FileSchema, FileGetSchema
-from checkers import instance_exists_by_id
+from .file import FileCreateSchema, FileGetSchema
+from utilities import instance_exists_by_id
 from text_templates import OBJECT_DOES_NOT_EXIST
 from db_init import db
 
@@ -15,10 +14,10 @@ class CommentSchemaMixin:
     comment_modified_at = fields.DateTime(required=False, allow_none=True)
     comment_author = fields.Integer(required=True)
     comment_post = fields.Integer(required=False)
-    comment_image = fields.Nested(FileSchema(), allow_none=True)
+    comment_image = fields.Nested(FileCreateSchema(), allow_none=True)
 
     @pre_load
-    def serialize_image(self, data, **kwargs):
+    def serialize_data(self, data, **kwargs):
         image_file = data.get("comment_image")
 
         if data.get("comment_parent"):

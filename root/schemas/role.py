@@ -1,7 +1,7 @@
 from marshmallow import fields, EXCLUDE
 from models import Role
 from app_init import ma
-from checkers import is_name_valid
+from utilities import is_name_valid
 
 
 class RoleGetSchema(ma.SQLAlchemyAutoSchema):

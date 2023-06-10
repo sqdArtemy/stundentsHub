@@ -3,7 +3,7 @@ from .comment import CommentGetSchema
 from .user import UserGetSchema
 from models import Post, User
 from app_init import ma
-from checkers import instance_exists_by_id
+from utilities import instance_exists_by_id
 from text_templates import OBJECT_DOES_NOT_EXIST
 
 

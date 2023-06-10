@@ -25,10 +25,13 @@ class University(db.Model):
     def save_changes():
         db.session.commit()
 
-    def __init__(self, university_name: str, university_email: str, university_phone: str):
+    def __init__(self, university_name: str, university_email: str, university_phone: str, university_image=None):
         self.university_name = university_name
         self.university_phone = university_phone
         self.university_email = university_email
+        if university_image:
+            self.university_image = university_image
+            self.university_image_if = university_image.file_id
 
     def __repr__(self):
         return f"uni: {self.university_name}"

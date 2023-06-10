@@ -1,5 +1,4 @@
 import http_codes
-from db_init import db
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
 from datetime import datetime
@@ -9,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Comment, User
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
-from checkers import is_authorized_error_handler
+from utilities import is_authorized_error_handler, save_file
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("comment_text", location="form")
@@ -37,6 +36,7 @@ class CommentListView(Resource):
 
         data["comment_author"] = UserGetSchema(only=("user_id",)).dump(User.query.get(get_jwt_identity()))
         data["comment_created_at"] = str(datetime.utcnow())
+        image_file = data["comment_image"]
 
         try:
             comment = self.comment_create_schema.load(data)
@@ -44,8 +44,11 @@ class CommentListView(Resource):
             if comment.comment_parent and comment.comment_post != comment.parent_comment.comment_post:
                 abort(http_codes.HTTP_FORBIDDEN_403, error_message="Parent comment has different post.")
 
-            db.session.add_all((comment, comment.comment_image))
-            db.session.commit()
+            comment.create()
+
+            if image_file:
+                comment.comment_image.create()
+                save_file(image_file, comment.comment_image.file_url[1:])
 
             return make_response(jsonify(self.comment_get_schema.dump(comment)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
@@ -95,6 +98,7 @@ class CommentDetailedView(Resource):
         data = parser.parse_args()
         data["comment_modified_at"] = str(datetime.utcnow())
         data = {key: value for key, value in data.items() if value}
+        image_file = data["comment_image"]
 
         try:
             updated_comment = self.comment_update_schema.load(data)
@@ -102,8 +106,9 @@ class CommentDetailedView(Resource):
                 setattr(comment, key, value)
 
             comment.save_changes()
-            if comment.comment_image:
+            if image_file:
                 comment.comment_image.create()
+                save_file(image_file, comment.comment_image.file_url[1:])
 
             return jsonify(self.comment_get_schema.dump(comment))
         except ValidationError as e:

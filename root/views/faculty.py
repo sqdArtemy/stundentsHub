@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required
 from models import Faculty
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import is_authorized_error_handler
+from utilities import is_authorized_error_handler
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("faculty_name", location="form")

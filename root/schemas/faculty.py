@@ -1,7 +1,7 @@
 from marshmallow import fields, validates, ValidationError, EXCLUDE
 from models import Faculty, University
 from app_init import ma
-from checkers import is_name_valid, instance_exists_by_id
+from utilities import is_name_valid, instance_exists_by_id
 
 
 class FacultySchemaMixin:

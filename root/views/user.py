@@ -7,7 +7,7 @@ from werkzeug.security import check_password_hash
 from models import User
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
-from checkers import is_authorized_error_handler
+from utilities import is_authorized_error_handler
 
 
 parser = reqparse.RequestParser(bundle_errors=True)

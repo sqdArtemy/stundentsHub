@@ -1,24 +1,24 @@
 import os
 import uuid
+from werkzeug.utils import secure_filename
 from flask import url_for
 from models import File
-from app_init import ma, app
+from app_init import ma
 from marshmallow import fields, EXCLUDE, post_load
 from db_init import db
 
 
-class FileSchema(ma.SQLAlchemyAutoSchema):
+class FileCreateSchema(ma.SQLAlchemyAutoSchema):
     file_raw = fields.Raw(type="file", load_only=True, required=True)
 
     @post_load
     def image_processing(self, data, **kwargs):
         file = data.get("file_raw")
-        unique_name = str(uuid.uuid4()) + os.path.splitext(str(file.filename))[1]
-        save_path = os.path.join(app.config["UPLOAD_FOLDER"], unique_name)
-        file.save(save_path)
-        file_url = url_for("static", filename=unique_name)
+        file_name = secure_filename(file.filename)
+        unique_name = str(uuid.uuid4()) + os.path.splitext(file_name)[1]
+        file_url = url_for("static", filename=f"uploads/{unique_name}")
 
-        return File(file.filename, file_url)
+        return File(file_name, file_url)
 
     class Meta:
         model = File
@@ -34,5 +34,5 @@ class FileGetSchema(ma.SQLAlchemyAutoSchema):
         model = File
         ordered = True
         load_instance = True
-        fields = ("file_id", "file_name", "file_url")
+        fields = ("file_id", "file_name", "file_url", "file_raw")
         sqla_session = db.session

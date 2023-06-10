@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required
 from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from checkers import is_authorized_error_handler
+from utilities import is_authorized_error_handler
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("role_name", location="form", help=MSG_MISSING.format("role_name"))

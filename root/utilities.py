@@ -1,15 +1,17 @@
-"""
-This module contains functions which are used to check conditions
-I did it in separate module, because these functions are used throughout whole project
-"""
 import re
-import json
+import os
+from app_init import app
 import http_codes
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from jwt.exceptions import ExpiredSignatureError
 from flask import current_app
 from flask_restful import abort
 from marshmallow import ValidationError
+
+
+def save_file(file, file_url):
+    save_path = os.path.join(app.config["ROOT_FOLDER"], file_url)
+    file.save(save_path)
 
 
 def instance_exists_by_id(_id: int, model) -> bool:
