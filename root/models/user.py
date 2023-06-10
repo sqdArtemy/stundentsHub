@@ -58,7 +58,8 @@ class User(db.Model):
                 user_tg_link: str,
                 user_enrolment_year: str,
                 user_university: int,
-                user_faculty: int
+                user_faculty: int,
+                user_image = None
                 ):
         self.user_name = user_name
         self.user_surname = user_surname
@@ -69,6 +70,9 @@ class User(db.Model):
         self.user_tg_link = user_tg_link
         self.user_university = user_university
         self.user_faculty = user_faculty
+        if user_image:
+            self.user_image = user_image
+            self.user_image_id = user_image.file_id
 
     def __repr__(self):
         return f"{self.user_name}: {self.user_email}"

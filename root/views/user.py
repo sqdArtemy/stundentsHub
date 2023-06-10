@@ -4,10 +4,11 @@ from marshmallow import ValidationError
 from flask import jsonify, make_response, redirect
 from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash
+from werkzeug.datastructures import FileStorage
 from models import User
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
-from utilities import is_authorized_error_handler
+from utilities import is_authorized_error_handler, save_file
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -22,6 +23,7 @@ parser.add_argument("user_university", type=int, location="form")
 parser.add_argument("user_enrolment_year", location="form")
 parser.add_argument("user_tg_link", location="form")
 parser.add_argument("user_phone", location="form")
+parser.add_argument("user_image", type=FileStorage, location="files")
 
 
 class UserRegisterView(Resource):
@@ -32,9 +34,15 @@ class UserRegisterView(Resource):
         parser.add_argument("user_password", location="form")
         data = parser.parse_args()
 
+        image_file = data.get("user_image")
+
         try:
             user = self.user_create_schema.load(data)
             user.create()
+
+            if image_file:
+                user.user_image.create()
+                save_file(image_file, user.user_image.file_url[1:])
 
             return make_response(jsonify(self.user_get_schema.dump(user)), http_codes.HTTP_OK_200)
         except ValidationError as e:
@@ -209,11 +217,16 @@ class UserDetailedViewSet(Resource):
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
 
+        image_file = data.get("user_image")
+
         try:
             updated_user = self.user_update_schema.load(data)
             for key, value in updated_user.items():
                 setattr(user, key, value)
             user.save_changes()
+            if image_file:
+                user.user_image.create()
+                save_file(image_file, user.user_image.file_url[1:])
 
             return jsonify(self.user_get_schema.dump(user))
         except ValidationError as e:

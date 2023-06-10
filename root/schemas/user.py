@@ -1,7 +1,8 @@
-from marshmallow import fields, validate, post_load, validates, ValidationError, EXCLUDE
+from marshmallow import fields, validate, post_load, validates, ValidationError, EXCLUDE, pre_load
 from werkzeug.security import generate_password_hash
 from models import User, Role, Faculty, University
 from app_init import ma
+from .file import FileCreateSchema, FileGetSchema
 from utilities import is_email_valid, instance_exists_by_id, is_phone_valid, is_name_valid, is_password_valid
 from db_init import db
 
@@ -19,6 +20,15 @@ class UserSchemaMixin:
     user_enrolment_year = fields.Date(required=False, format="%Y-%m-%d")
     user_tg_link = fields.Str(required=False, allow_none=True)
     user_phone = fields.Str(required=False, allow_none=True, validate=is_phone_valid)
+    user_image = fields.Nested(FileCreateSchema(), allow_none=True)
+
+    @pre_load
+    def serialize_data(self, data, **kwargs):
+        image_file = data.get("user_image")
+        if image_file:
+            data["user_image"] = {"file_raw": image_file}
+
+        return data
 
     @validates("user_email")
     def validate_user_email(self, value):
@@ -54,11 +64,13 @@ class UserSchemaMixin:
 
 
 class UserGetSchema(ma.SQLAlchemyAutoSchema):
+    user_image = fields.Nested(FileGetSchema())
+
     class Meta:
         model = User
         ordered = True
         fields = ("user_id", "user_name", "user_surname", "user_email", "user_card_id",
-                  "user_birthday", "user_role", "user_faculty", "user_university", "user_enrolment_year",
+                  "user_birthday", "user_image", "user_role", "user_faculty", "user_university", "user_enrolment_year",
                   "user_tg_link", "user_phone", "user_followers", "user_following", "user_liked_posts", "user_disliked_posts")
         include_relationships = True
         load_instance = True
@@ -77,13 +89,11 @@ class UserCreateSchema(ma.SQLAlchemyAutoSchema, UserSchemaMixin):
     user_faculty = fields.Integer(required=True)
     user_university = fields.Integer(required=True)
     user_enrolment_year = fields.Date(required=True, format="%Y-%m-%d")
-    user_tg_link = fields.Str(required=False, allow_none=True)
-    user_phone = fields.Str(required=False, allow_none=True, validate=is_phone_valid)
 
     class Meta:
         model = User
         fields = ("user_name", "user_surname", "user_email", "user_password", "user_card_id",
-                  "user_birthday", "user_role", "user_faculty", "user_university", "user_enrolment_year",
+                  "user_birthday", "user_image", "user_role", "user_faculty", "user_university", "user_enrolment_year",
                   "user_tg_link", "user_phone")
         unknown = EXCLUDE
         include_relationships = True
@@ -94,7 +104,7 @@ class UserUpdateSchema(ma.SQLAlchemyAutoSchema, UserSchemaMixin):
     class Meta:
         model = User
         fields = ("user_name", "user_surname", "user_email", "user_password", "user_card_id",
-                  "user_birthday", "user_role", "user_faculty", "user_university", "user_enrolment_year",
+                  "user_birthday", "user_image", "user_role", "user_faculty", "user_university", "user_enrolment_year",
                   "user_tg_link", "user_phone")
         include_relationships = True
         load_instance = False
