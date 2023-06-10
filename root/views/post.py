@@ -1,6 +1,7 @@
 import http_codes
 from sqlalchemy import text
 from flask_restful import Resource, abort, reqparse
+from werkzeug.datastructures import FileStorage
 from datetime import datetime
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -9,11 +10,13 @@ from models import Post, User
 from db_init import db
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
-from utilities import is_authorized_error_handler
+from utilities import is_authorized_error_handler, save_file
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("post_heading", location="form")
 parser.add_argument("post_text", location="form")
+parser.add_argument("post_image", type=FileStorage, location="files")
+parser.add_argument("post_files", type=FileStorage, location="files", action="append")
 
 
 class PostListView(Resource):
@@ -34,9 +37,25 @@ class PostListView(Resource):
         data["post_author"] = get_jwt_identity()
         data["post_created_at"] = str(datetime.utcnow())
 
+        image_file = data.get("post_image")
+        files = data.get("post_files")
+
         try:
             post = self.post_create_schema.load(data)
             post.create()
+
+            if image_file:
+                post.post_image.create()
+                save_file(image_file, post.post_image.file_url[1:])
+
+            if files:
+                file_count = 0
+                for file in files:
+                    save_file(file, post.post_files[file_count].file_url[1:])
+                    file_count += 1
+
+                db.session.add_all(post.post_files)
+                db.session.commit()
 
             return make_response(jsonify(self.post_get_schema.dump(post)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
@@ -87,11 +106,27 @@ class PostDetailedView(Resource):
         data["post_modified_at"] = str(datetime.utcnow())
         data = {key: value for key, value in data.items() if value}
 
+        image_file = data.get("post_image")
+        files = data.get("post_files")
+
         try:
             updated_post = self.post_update_schema.load(data)
             for key, value in updated_post.items():
                 setattr(post, key, value)
             post.save_changes()
+
+            if image_file:
+                post.post_image.create()
+                save_file(image_file, post.post_image.file_url[1:])
+
+            if files:
+                file_count = 0
+                for file in files:
+                    save_file(file, post.post_files[file_count].file_url[1:])
+                    file_count += 1
+
+                db.session.add_all(post.post_files)
+                db.session.commit()
 
             return jsonify(self.post_get_schema.dump(post))
         except ValidationError as e:

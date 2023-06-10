@@ -9,6 +9,7 @@ class File(db.Model):
     file_name = db.Column(db.String(256))
     file_url = db.Column(db.String(256))
     file_format = db.Column(db.String(6))
+    file_post_id = db.Column(db.Integer, db.ForeignKey("posts.post_id"))
 
     def create(self):
         db.session.add(self)

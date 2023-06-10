@@ -1,5 +1,6 @@
 from db_init import db
 from datetime import datetime
+from .file import File
 
 
 user_likes_post = db.Table(
@@ -12,12 +13,6 @@ user_dislikes_post = db.Table(
     "user_dislikes_post",
     db.Column("user_id", db.Integer, db.ForeignKey("users.user_id")),
     db.Column("post_id", db.Integer, db.ForeignKey("posts.post_id"))
-)
-
-post_file = db.Table(
-    "post_file",
-    db.Column("post_id", db.Integer, db.ForeignKey("posts.post_id")),
-    db.Column("file_id", db.Integer, db.ForeignKey("files.file_id"))
 )
 
 
@@ -37,8 +32,10 @@ class Post(db.Model):
     post_liked_by = db.relationship("User", secondary=user_likes_post, backref="user_liked_posts")
     post_disliked_by = db.relationship("User", secondary=user_dislikes_post, backref="user_disliked_posts")
     post_image_id = db.Column(db.Integer, db.ForeignKey("files.file_id", ondelete="CASCADE"), nullable=True)
-    post_image = db.relationship("File", backref="image_in_post", cascade="all, delete", lazy=True)
-    post_files = db.relationship("File", secondary=post_file, backref="files_in_post")
+    post_image = db.relationship("File", backref="image_in_post", cascade="all, delete",
+                                 lazy=True, foreign_keys=[post_image_id])
+    post_files = db.relationship("File", backref="post", cascade="all, delete",
+                                 lazy='dynamic',  foreign_keys=[File.file_post_id])
 
     def create(self):
         db.session.add(self)
@@ -53,12 +50,17 @@ class Post(db.Model):
         db.session.commit()
 
     def __init__(self, post_heading: str, post_text: str, post_created_at: str,
-                 post_author: int, post_modified_at=None):
+                 post_author: int, post_modified_at=None, post_image=None, post_files=None):
         self.post_heading = post_heading
         self.post_text = post_text
         self.post_author = post_author
         self.post_created_at = post_created_at
         self.post_modified_at = post_modified_at
+        if post_image:
+            self.post_image = post_image
+            self.post_image_id = post_image.file_id
+        if post_files:
+            self.post_files = post_files
 
     def __repr__(self):
         return f"Post({self.post_id} {self.post_heading})"
