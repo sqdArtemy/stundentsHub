@@ -59,10 +59,9 @@ class UniversityDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self, university_id: int):
-        university = University.query.get(university_id)
-        if not university:
-            abort(http_codes.HTTP_NOT_FOUND_404,
-                  error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
+        university = University.query.get_or_404(
+            university_id, description=OBJECT_DOES_NOT_EXIST.format("University", university_id)
+        )
 
         return jsonify(self.university_get_schema.dump(university))
 
@@ -70,10 +69,9 @@ class UniversityDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def delete(cls, university_id: int):
-        university = University.query.get(university_id)
-        if not university:
-            abort(http_codes.HTTP_NOT_FOUND_404,
-                  error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
+        university = University.query.get_or_404(
+            university_id, description=OBJECT_DOES_NOT_EXIST.format("University", university_id)
+        )
         university.delete()
 
         return {"success": OBJECT_DELETED.format("University", university_id)}, 200
@@ -81,10 +79,9 @@ class UniversityDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     async def put(self, university_id: int):
-        university = University.query.get(university_id)
-        if not university:
-            abort(http_codes.HTTP_NOT_FOUND_404,
-                  error_message=OBJECT_DOES_NOT_EXIST.format("University", university_id))
+        university = University.query.get_or_404(
+            university_id, description=OBJECT_DOES_NOT_EXIST.format("University", university_id)
+        )
 
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}

@@ -156,11 +156,8 @@ class UserFollowView(Resource):
         follow_parser.add_argument("action", required=True, choices=["follow", "unfollow"], location="form")
         data = follow_parser.parse_args()
 
-        user_to_follow = User.query.get(user_id)
+        user_to_follow = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
         follower = User.query.get(get_jwt_identity())
-
-        if not user_to_follow:
-            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
 
         if user_to_follow is follower:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message="You can not follow yourself.")
@@ -192,9 +189,7 @@ class UserDetailedViewSet(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self, user_id: int):
-        user = User.query.get(user_id)
-        if not user:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+        user = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
 
         return jsonify(self.user_get_schema.dump(user))
 
@@ -202,9 +197,7 @@ class UserDetailedViewSet(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def delete(cls, user_id: int):
-        user = User.query.get(user_id)
-        if not user:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+        user = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
         user.delete()
 
         return {"success": OBJECT_DELETED.format("User", user_id)}, http_codes.HTTP_NO_CONTENT_204
@@ -212,11 +205,9 @@ class UserDetailedViewSet(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     async def put(self, user_id: int):
-        user = User.query.get(user_id)
-        if not user:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
-
+        user = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
         requester = User.query.get(get_jwt_identity())
+
         if requester is not user:
             abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("User"))
 

@@ -45,9 +45,7 @@ class FacultyDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self, faculty_id: int):
-        faculty = Faculty.query.get(faculty_id)
-        if not faculty:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
+        faculty = Faculty.query.get_or_404(faculty_id, description=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
 
         return jsonify(self.faculty_get_schema.dump(faculty))
 
@@ -55,9 +53,7 @@ class FacultyDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def delete(cls, faculty_id: int):
-        faculty = Faculty.query.get(faculty_id)
-        if not faculty:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
+        faculty = Faculty.query.get_or_404(faculty_id, description=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
         faculty.delete()
 
         return {"success": OBJECT_DELETED.format("Faculty", faculty_id)}, http_codes.HTTP_NO_CONTENT_204
@@ -65,9 +61,7 @@ class FacultyDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, faculty_id: int):
-        faculty = Faculty.query.get(faculty_id)
-        if not faculty:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
+        faculty = Faculty.query.get_or_404(faculty_id, description=OBJECT_DOES_NOT_EXIST.format("Faculty", faculty_id))
 
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}

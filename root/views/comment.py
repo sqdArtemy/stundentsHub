@@ -68,9 +68,7 @@ class CommentDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self, comment_id):
-        comment = Comment.query.get(comment_id)
-        if not comment:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
+        comment = Comment.query.get_or_404(comment_id, description=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
 
         return jsonify(self.comment_get_schema.dump(comment))
 
@@ -78,9 +76,7 @@ class CommentDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def delete(cls, comment_id):
-        comment = Comment.query.get(comment_id)
-        if not comment:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
+        comment = Comment.query.get_or_404(comment_id, description=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
 
         editor = User.query.get(get_jwt_identity())
         if editor is not comment.author:
@@ -93,9 +89,7 @@ class CommentDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     async def put(self, comment_id):
-        comment = Comment.query.get(comment_id)
-        if not comment:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
+        comment = Comment.query.get_or_404(comment_id, description=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
 
         editor = User.query.get(get_jwt_identity())
         if editor is not comment.author:
@@ -110,7 +104,6 @@ class CommentDetailedView(Resource):
 
         try:
             updated_comment = self.comment_update_schema.load(data)
-
             async_tasks = []
 
             for key, value in updated_comment.items():

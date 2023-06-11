@@ -44,18 +44,15 @@ class RoleDetailedViewSet(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self, role_id: int):
-        role = Role.query.get(role_id)
-        if not role:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
+        role = Role.query.get_or_404(role_id, description=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
+
         return jsonify(self.role_get_schema.dump(role))
 
     @classmethod
     @is_authorized_error_handler()
     @jwt_required()
     def delete(cls, role_id: int):
-        role = Role.query.get(role_id)
-        if not role:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
+        role = Role.query.get_or_404(role_id, description=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
         role.delete()
 
         return {"success": OBJECT_DELETED.format("Role", role_id)}, http_codes.HTTP_NO_CONTENT_204
@@ -63,9 +60,7 @@ class RoleDetailedViewSet(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, role_id: int):
-        role = Role.query.get(role_id)
-        if not role:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
+        role = Role.query.get_or_404(role_id, description=OBJECT_DOES_NOT_EXIST.format("Role", role_id))
 
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
