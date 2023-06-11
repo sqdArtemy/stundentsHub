@@ -94,62 +94,54 @@ class PostDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, post_id: int):
-        post = Post.query.get(post_id)
-        if not post:
-            abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+        with db.session.begin():
+            post = Post.query.get_or_404(post_id, description=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
 
-        editor = User.query.get(get_jwt_identity())
-        if editor is not post.author:
-            abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("post"))
+            editor = User.query.get(get_jwt_identity())
+            if editor is not post.author:
+                abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("post"))
 
-        data = parser.parse_args()
-        data["post_modified_at"] = str(datetime.utcnow())
-        data = {key: value for key, value in data.items() if value}
+            data = parser.parse_args()
+            data["post_modified_at"] = str(datetime.utcnow())
+            data = {key: value for key, value in data.items() if value}
 
-        old_image_file = post.post_image
-        old_files = post.post_files[:]
-        new_image_file = data.get("post_image")
-        new_files = data.get("post_files")
+            old_image_file = post.post_image
+            old_files = post.post_files[:]
+            new_image_file = data.get("post_image")
+            new_files = data.get("post_files")
 
-        try:
-            updated_post = self.post_update_schema.load(data)
-            for key, value in updated_post.items():
-                setattr(post, key, value)
+            try:
+                updated_post = self.post_update_schema.load(data)
+                for key, value in updated_post.items():
+                    setattr(post, key, value)
 
-            db.session.commit()
+                if new_image_file:
+                    if old_image_file:
+                        delete_file(old_image_file.file_url[1:])
+                        db.session.delete(old_image_file)
 
-            if new_image_file:
-                if old_image_file:
-                    delete_file(old_image_file.file_url[1:])
-                    old_image_file.delete()
+                    db.session.add(post.post_image)
+                    save_file(new_image_file, post.post_image.file_url[1:])
 
-                post.post_image.create()
-                save_file(new_image_file, post.post_image.file_url[1:])
+                if new_files:
+                    if old_files:
+                        for file in old_files:
+                            delete_file(file.file_url[1:])
 
-            if new_files:
-                if old_files:
-                    for file in old_files:
-                        delete_file(file.file_url[1:])
+                        # Kind of "bulk delete", because sqlAlchemy does not have it out of box
+                        file_ids = [file.file_id for file in old_files]
+                        query = db.session.query(File).filter(File.file_id.in_(file_ids))
+                        query.delete()
 
-                    # Kind of "bulk delete", because sqlAlchemy does not have it out of box
-                    file_ids = [file.file_id for file in old_files]
-                    query = db.session.query(File).filter(File.file_id.in_(file_ids))
-                    query.delete()
-                    db.session.commit()
+                    file_count = 0
+                    for file in new_files:
+                        save_file(file, post.post_files[file_count].file_url[1:])
+                        file_count += 1
+                    db.session.add_all(post.post_files)
 
-                file_count = 0
-                for file in new_files:
-                    save_file(file, post.post_files[file_count].file_url[1:])
-                    file_count += 1
-
-                db.session.add_all(post.post_files)
-                db.session.commit()
-
-            post.save_changes()
-
-            return jsonify(self.post_get_schema.dump(post))
-        except ValidationError as e:
-            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+                return jsonify(self.post_get_schema.dump(post))
+            except ValidationError as e:
+                abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 class PostRateView(Resource):
