@@ -6,11 +6,11 @@ from datetime import datetime
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import jsonify, make_response
-from models import Post, User
+from models import Post, User, File
 from db_init import db
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
-from utilities import is_authorized_error_handler, save_file
+from utilities import is_authorized_error_handler, save_file, delete_file
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("post_heading", location="form")
@@ -106,27 +106,46 @@ class PostDetailedView(Resource):
         data["post_modified_at"] = str(datetime.utcnow())
         data = {key: value for key, value in data.items() if value}
 
-        image_file = data.get("post_image")
-        files = data.get("post_files")
+        old_image_file = post.post_image
+        old_files = post.post_files[:]
+        new_image_file = data.get("post_image")
+        new_files = data.get("post_files")
 
         try:
             updated_post = self.post_update_schema.load(data)
             for key, value in updated_post.items():
                 setattr(post, key, value)
-            post.save_changes()
 
-            if image_file:
+            db.session.commit()
+
+            if new_image_file:
+                if old_image_file:
+                    delete_file(old_image_file.file_url[1:])
+                    old_image_file.delete()
+
                 post.post_image.create()
-                save_file(image_file, post.post_image.file_url[1:])
+                save_file(new_image_file, post.post_image.file_url[1:])
 
-            if files:
+            if new_files:
+                if old_files:
+                    for file in old_files:
+                        delete_file(file.file_url[1:])
+
+                    # Kind of "bulk delete", because sqlAlchemy does not have it out of box
+                    file_ids = [file.file_id for file in old_files]
+                    query = db.session.query(File).filter(File.file_id.in_(file_ids))
+                    query.delete()
+                    db.session.commit()
+
                 file_count = 0
-                for file in files:
+                for file in new_files:
                     save_file(file, post.post_files[file_count].file_url[1:])
                     file_count += 1
 
                 db.session.add_all(post.post_files)
                 db.session.commit()
+
+            post.save_changes()
 
             return jsonify(self.post_get_schema.dump(post))
         except ValidationError as e:

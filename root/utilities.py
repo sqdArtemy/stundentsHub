@@ -14,6 +14,12 @@ def save_file(file, file_url):
     file.save(save_path)
 
 
+def delete_file(file_url):
+    file_path = os.path.join(app.config["ROOT_FOLDER"], file_url)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+
 def instance_exists_by_id(_id: int, model) -> bool:
     return model.query.get(_id) is not None
 

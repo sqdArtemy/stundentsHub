@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Comment, User
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
-from utilities import is_authorized_error_handler, save_file
+from utilities import is_authorized_error_handler, save_file, delete_file
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("comment_text", location="form")
@@ -98,7 +98,9 @@ class CommentDetailedView(Resource):
         data = parser.parse_args()
         data["comment_modified_at"] = str(datetime.utcnow())
         data = {key: value for key, value in data.items() if value}
-        image_file = data["comment_image"]
+
+        old_image_file = comment.comment_image
+        new_image_file = data["comment_image"]
 
         try:
             updated_comment = self.comment_update_schema.load(data)
@@ -106,9 +108,13 @@ class CommentDetailedView(Resource):
                 setattr(comment, key, value)
 
             comment.save_changes()
-            if image_file:
+            if new_image_file:
+                if old_image_file:
+                    delete_file(old_image_file.file_url[1:])
+                    old_image_file.delete()
+
                 comment.comment_image.create()
-                save_file(image_file, comment.comment_image.file_url[1:])
+                save_file(new_image_file, comment.comment_image.file_url[1:])
 
             return jsonify(self.comment_get_schema.dump(comment))
         except ValidationError as e:

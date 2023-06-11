@@ -19,14 +19,10 @@ class File(db.Model):
         db.session.delete(self)
         db.session.commit()
 
-    @staticmethod
-    def save_changes():
-        db.session.commit()
-
     def __init__(self, file_name: str, file_url):
         self.file_name = file_name
         self.file_url = file_url
         self.file_format = os.path.splitext(file_name)[1]
 
     def __repr__(self):
-        return f"{self.file_name}"
+        return self.file_name

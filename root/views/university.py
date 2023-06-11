@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required
 from models import University
 from schemas import UniversityGetSchema, UniversityCreateSchema, UniversityUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from utilities import is_authorized_error_handler, save_file
+from utilities import is_authorized_error_handler, save_file, delete_file
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("university_name", location="form")
@@ -82,7 +82,9 @@ class UniversityDetailedView(Resource):
 
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
-        image_file = data.get("university_image")
+
+        old_image_file = university.university_image
+        new_image_file = data.get("university_image")
 
         try:
             updated_university = self.university_update_schema.load(data)
@@ -91,9 +93,13 @@ class UniversityDetailedView(Resource):
                 setattr(university, key, value)
             university.save_changes()
 
-            if image_file:
+            if new_image_file:
+                if old_image_file:
+                    delete_file(old_image_file.file_url[1:])
+                    old_image_file.delete()
+
                 university.university_image.create()
-                save_file(image_file, university.university_image.file_url[1:])
+                save_file(new_image_file, university.university_image.file_url[1:])
 
             return jsonify(self.university_get_schema.dump(university))
         except ValidationError as e:

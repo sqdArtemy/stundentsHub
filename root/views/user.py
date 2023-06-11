@@ -8,7 +8,7 @@ from werkzeug.datastructures import FileStorage
 from models import User
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
-from utilities import is_authorized_error_handler, save_file
+from utilities import is_authorized_error_handler, save_file, delete_file
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -217,16 +217,22 @@ class UserDetailedViewSet(Resource):
         data = parser.parse_args()
         data = {key: value for key, value in data.items() if value}
 
-        image_file = data.get("user_image")
+        old_image_file = user.user_image
+        new_image_file = data.get("user_image")
 
         try:
             updated_user = self.user_update_schema.load(data)
             for key, value in updated_user.items():
                 setattr(user, key, value)
             user.save_changes()
-            if image_file:
+
+            if new_image_file:
+                if old_image_file:
+                    delete_file(old_image_file.file_url[1:])
+                    old_image_file.delete()
+
                 user.user_image.create()
-                save_file(image_file, user.user_image.file_url[1:])
+                save_file(new_image_file, user.user_image.file_url[1:])
 
             return jsonify(self.user_get_schema.dump(user))
         except ValidationError as e:
