@@ -1,4 +1,5 @@
 import http_codes
+import asyncio
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
 from datetime import datetime
@@ -28,7 +29,7 @@ class CommentListView(Resource):
 
     @is_authorized_error_handler()
     @jwt_required()
-    def post(self):
+    async def post(self):
         parser_post = parser.copy()
         parser_post.add_argument("comment_post", type=int, location="form")
         parser_post.add_argument("comment_parent", type=int, location="form")
@@ -41,6 +42,8 @@ class CommentListView(Resource):
         try:
             comment = self.comment_create_schema.load(data)
 
+            async_tasks = []
+
             if comment.comment_parent and comment.comment_post != comment.parent_comment.comment_post:
                 abort(http_codes.HTTP_FORBIDDEN_403, error_message="Parent comment has different post.")
 
@@ -48,7 +51,10 @@ class CommentListView(Resource):
 
             if image_file:
                 comment.comment_image.create()
-                save_file(image_file, comment.comment_image.file_url[1:])
+                task = save_file(image_file, comment.comment_image.file_url[1:])
+                async_tasks.append(task)
+
+            await asyncio.gather(*async_tasks)
 
             return make_response(jsonify(self.comment_get_schema.dump(comment)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
@@ -86,7 +92,7 @@ class CommentDetailedView(Resource):
 
     @is_authorized_error_handler()
     @jwt_required()
-    def put(self, comment_id):
+    async def put(self, comment_id):
         comment = Comment.query.get(comment_id)
         if not comment:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
@@ -104,17 +110,24 @@ class CommentDetailedView(Resource):
 
         try:
             updated_comment = self.comment_update_schema.load(data)
+
+            async_tasks = []
+
             for key, value in updated_comment.items():
                 setattr(comment, key, value)
 
-            comment.save_changes()
             if new_image_file:
                 if old_image_file:
-                    delete_file(old_image_file.file_url[1:])
+                    task = delete_file(old_image_file.file_url[1:])
+                    async_tasks.append(task)
                     old_image_file.delete()
 
                 comment.comment_image.create()
-                save_file(new_image_file, comment.comment_image.file_url[1:])
+                task = save_file(new_image_file, comment.comment_image.file_url[1:])
+                async_tasks.append(task)
+
+            comment.save_changes()
+            await asyncio.gather(*async_tasks)
 
             return jsonify(self.comment_get_schema.dump(comment))
         except ValidationError as e:

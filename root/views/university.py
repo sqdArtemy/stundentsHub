@@ -1,4 +1,5 @@
 import http_codes
+import asyncio
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
 from marshmallow import ValidationError
@@ -29,7 +30,7 @@ class UniversityListView(Resource):
 
     @is_authorized_error_handler()
     @jwt_required()
-    def post(self):
+    async def post(self):
         data = parser.parse_args()
         image_file = data["university_image"]
 
@@ -37,9 +38,14 @@ class UniversityListView(Resource):
             university = self.university_create_schema.load(data)
             university.create()
 
+            async_tasks = []
+
             if image_file:
                 university.university_image.create()
-                save_file(image_file, university.university_image.file_url[1:])
+                task = save_file(image_file, university.university_image.file_url[1:])
+                async_tasks.append(task)
+
+            await asyncio.gather(*async_tasks)
 
             return make_response(jsonify(self.university_get_schema.dump(university)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
@@ -74,7 +80,7 @@ class UniversityDetailedView(Resource):
 
     @is_authorized_error_handler()
     @jwt_required()
-    def put(self, university_id: int):
+    async def put(self, university_id: int):
         university = University.query.get(university_id)
         if not university:
             abort(http_codes.HTTP_NOT_FOUND_404,
@@ -88,18 +94,24 @@ class UniversityDetailedView(Resource):
 
         try:
             updated_university = self.university_update_schema.load(data)
-            from pprint import pprint
+
+            async_tasks = []
+
             for key, value in updated_university.items():
                 setattr(university, key, value)
-            university.save_changes()
 
             if new_image_file:
                 if old_image_file:
-                    delete_file(old_image_file.file_url[1:])
+                    task = delete_file(old_image_file.file_url[1:])
+                    async_tasks.append(task)
                     old_image_file.delete()
 
                 university.university_image.create()
-                save_file(new_image_file, university.university_image.file_url[1:])
+                task = save_file(new_image_file, university.university_image.file_url[1:])
+                async_tasks.append(task)
+
+            university.save_changes()
+            await asyncio.gather(*async_tasks)
 
             return jsonify(self.university_get_schema.dump(university))
         except ValidationError as e:

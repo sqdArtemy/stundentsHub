@@ -1,4 +1,5 @@
 import http_codes
+import asyncio
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
 from flask import jsonify, make_response, redirect
@@ -30,7 +31,7 @@ class UserRegisterView(Resource):
     user_create_schema = UserCreateSchema()
     user_get_schema = UserGetSchema()
 
-    def post(self):
+    async def post(self):
         parser.add_argument("user_password", location="form")
         data = parser.parse_args()
 
@@ -40,9 +41,14 @@ class UserRegisterView(Resource):
             user = self.user_create_schema.load(data)
             user.create()
 
+            async_tasks = []
+
             if image_file:
                 user.user_image.create()
-                save_file(image_file, user.user_image.file_url[1:])
+                task = save_file(image_file, user.user_image.file_url[1:])
+                async_tasks.append(task)
+
+            await asyncio.gather(*async_tasks)
 
             return make_response(jsonify(self.user_get_schema.dump(user)), http_codes.HTTP_OK_200)
         except ValidationError as e:
@@ -205,7 +211,7 @@ class UserDetailedViewSet(Resource):
 
     @is_authorized_error_handler()
     @jwt_required()
-    def put(self, user_id: int):
+    async def put(self, user_id: int):
         user = User.query.get(user_id)
         if not user:
             abort(http_codes.HTTP_NOT_FOUND_404, error_message=OBJECT_DOES_NOT_EXIST.format("User", user_id))
@@ -222,17 +228,24 @@ class UserDetailedViewSet(Resource):
 
         try:
             updated_user = self.user_update_schema.load(data)
+
+            async_tasks = []
+
             for key, value in updated_user.items():
                 setattr(user, key, value)
-            user.save_changes()
 
             if new_image_file:
                 if old_image_file:
-                    delete_file(old_image_file.file_url[1:])
+                    task = delete_file(old_image_file.file_url[1:])
+                    async_tasks.append(task)
                     old_image_file.delete()
 
                 user.user_image.create()
-                save_file(new_image_file, user.user_image.file_url[1:])
+                task = save_file(new_image_file, user.user_image.file_url[1:])
+                async_tasks.append(task)
+
+            user.save_changes()
+            await asyncio.gather(*async_tasks)
 
             return jsonify(self.user_get_schema.dump(user))
         except ValidationError as e:
