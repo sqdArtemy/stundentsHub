@@ -79,7 +79,7 @@ class PostDetailedView(Resource):
     @classmethod
     @is_authorized_error_handler()
     @jwt_required()
-    def delete(cls, post_id: int):
+    async def delete(cls, post_id: int):
         post = Post.query.get_or_404(post_id, description=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
 
         editor = User.query.get(get_jwt_identity())
@@ -102,7 +102,7 @@ class PostDetailedView(Resource):
                     abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("post"))
 
                 data = parser.parse_args()
-                data["post_modified_at"] = str(datetime.utcnow())
+                data["post_modified_at"] = datetime.utcnow().isoformat()
                 data = {key: value for key, value in data.items() if value}
 
                 old_image_file = post.post_image

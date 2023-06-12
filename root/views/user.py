@@ -35,8 +35,6 @@ class UserRegisterView(Resource):
 
     @app.ensure_sync
     async def post(self):
-        loop = asyncio.get_event_loop()
-        print(loop)
         parser.add_argument("user_password", location="form")
         data = parser.parse_args()
 
@@ -204,7 +202,7 @@ class UserDetailedViewSet(Resource):
     @classmethod
     @is_authorized_error_handler()
     @jwt_required()
-    def delete(cls, user_id: int):
+    async def delete(cls, user_id: int):
         user = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
         user.delete()
 

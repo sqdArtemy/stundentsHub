@@ -70,7 +70,7 @@ class UniversityDetailedView(Resource):
     @classmethod
     @is_authorized_error_handler()
     @jwt_required()
-    def delete(cls, university_id: int):
+    async def delete(cls, university_id: int):
         university = University.query.get_or_404(
             university_id, description=OBJECT_DOES_NOT_EXIST.format("University", university_id)
         )

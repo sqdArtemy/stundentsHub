@@ -1,5 +1,6 @@
 import http_codes
 import asyncio
+from db_init import db
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
 from datetime import datetime
@@ -36,25 +37,25 @@ class CommentListView(Resource):
         data = parser_post.parse_args()
 
         data["comment_author"] = UserGetSchema(only=("user_id",)).dump(User.query.get(get_jwt_identity()))
-        data["comment_created_at"] = str(datetime.utcnow())
+        data["comment_created_at"] = datetime.utcnow().isoformat()
         image_file = data["comment_image"]
 
         try:
-            comment = self.comment_create_schema.load(data)
+            with db.session.begin():
+                comment = self.comment_create_schema.load(data)
+                async_tasks = []
 
-            async_tasks = []
+                if comment.comment_parent and comment.comment_post != comment.parent_comment.comment_post:
+                    abort(http_codes.HTTP_FORBIDDEN_403, error_message="Parent comment has different post.")
 
-            if comment.comment_parent and comment.comment_post != comment.parent_comment.comment_post:
-                abort(http_codes.HTTP_FORBIDDEN_403, error_message="Parent comment has different post.")
+                db.session.add(comment)
 
-            comment.create()
+                if image_file:
+                    db.session.add(comment.comment_image)
+                    task = save_file(image_file, comment.comment_image.file_url[1:])
+                    async_tasks.append(task)
 
-            if image_file:
-                comment.comment_image.create()
-                task = save_file(image_file, comment.comment_image.file_url[1:])
-                async_tasks.append(task)
-
-            await asyncio.gather(*async_tasks)
+                await asyncio.gather(*async_tasks)
 
             return make_response(jsonify(self.comment_get_schema.dump(comment)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
@@ -89,36 +90,38 @@ class CommentDetailedView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     async def put(self, comment_id):
-        comment = Comment.query.get_or_404(comment_id, description=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
-
-        editor = User.query.get(get_jwt_identity())
-        if editor is not comment.author:
-            abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("comment"))
-
-        data = parser.parse_args()
-        data["comment_modified_at"] = str(datetime.utcnow())
-        data = {key: value for key, value in data.items() if value}
-
-        old_image_file = comment.comment_image
-        new_image_file = data["comment_image"]
-
         try:
-            updated_comment = self.comment_update_schema.load(data)
-            async_tasks = []
+            with db.session.begin():
+                comment = Comment.query.get_or_404(
+                    comment_id, description=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id)
+                )
 
-            for key, value in updated_comment.items():
-                setattr(comment, key, value)
+                editor = User.query.get(get_jwt_identity())
+                if editor is not comment.author:
+                    abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("comment"))
 
-            if new_image_file:
-                if old_image_file:
-                    old_image_file.delete()
+                data = parser.parse_args()
+                data["comment_modified_at"] = datetime.utcnow().isoformat()
+                data = {key: value for key, value in data.items() if value}
 
-                comment.comment_image.create()
-                task = save_file(new_image_file, comment.comment_image.file_url[1:])
-                async_tasks.append(task)
+                old_image_file = comment.comment_image
+                new_image_file = data["comment_image"]
 
-            comment.save_changes()
-            await asyncio.gather(*async_tasks)
+                updated_comment = self.comment_update_schema.load(data)
+                async_tasks = []
+
+                for key, value in updated_comment.items():
+                    setattr(comment, key, value)
+
+                if new_image_file:
+                    if old_image_file:
+                        db.session.delete(old_image_file)
+
+                    db.session.add(comment.comment_image)
+                    task = save_file(new_image_file, comment.comment_image.file_url[1:])
+                    async_tasks.append(task)
+
+                await asyncio.gather(*async_tasks)
 
             return jsonify(self.comment_get_schema.dump(comment))
         except ValidationError as e:
