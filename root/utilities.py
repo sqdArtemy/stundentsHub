@@ -1,7 +1,6 @@
 import re
 import os
 import aiofiles
-import asyncio
 from app_init import app
 import http_codes
 from flask_jwt_extended.exceptions import NoAuthorizationError
@@ -20,8 +19,7 @@ async def save_file(file, file_url):
 async def delete_file(file_url):
     file_path = os.path.join(app.config["ROOT_FOLDER"], file_url)
     if os.path.exists(file_path):
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, os.remove, file_path)
+        os.remove(file_path)
 
 
 def instance_exists_by_id(_id: int, model) -> bool:

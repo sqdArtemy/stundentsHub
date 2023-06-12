@@ -1,17 +1,19 @@
 import os
 from dotenv.main import load_dotenv
 
+load_dotenv()
 
+
+# TODO: Custom exception
 def get_env_variable(name: str) -> (str, Exception):
     try:
-        load_dotenv()
         return os.environ[name]
     except KeyError:
         message = f"Expected environment variable {name} was not set."
         return Exception(message)
 
 
-class Config(object):
+class Config:
     # App settings
     TESTING = False
     DEBUG = False

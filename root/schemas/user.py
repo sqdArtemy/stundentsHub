@@ -82,7 +82,7 @@ class UserCreateSchema(ma.SQLAlchemyAutoSchema, UserSchemaMixin):
     user_name = fields.Str(required=True, validate=is_name_valid)
     user_surname = fields.Str(required=True, validate=is_name_valid)
     user_email = fields.Email(required=True, validate=is_email_valid)
-    user_password = fields.Str(required=True, validate=validate.Length(min=6))
+    user_password = fields.Str(required=True, validate=is_password_valid)
     user_card_id = fields.Str(required=True)
     user_birthday = fields.Date(required=True, format="%Y-%m-%d")
     user_role = fields.Integer(required=True)

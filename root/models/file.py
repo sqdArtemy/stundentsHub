@@ -33,6 +33,6 @@ class File(db.Model):
 
 @event.listens_for(File, "before_delete")
 def delete_file_upon_model_deletion(mapper, connection, target):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(delete_file(target.file_url[1:]))
+    loop = asyncio.get_event_loop()
+    print(loop)
+    loop.create_task(delete_file(target.file_url[1:]))

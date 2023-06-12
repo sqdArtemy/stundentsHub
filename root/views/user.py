@@ -1,5 +1,6 @@
 import http_codes
 import asyncio
+from app_init import app
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
 from flask import jsonify, make_response, redirect
@@ -7,6 +8,7 @@ from flask_jwt_extended import create_refresh_token, create_access_token, jwt_re
 from werkzeug.security import check_password_hash
 from werkzeug.datastructures import FileStorage
 from models import User
+from db_init import db
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
@@ -31,26 +33,32 @@ class UserRegisterView(Resource):
     user_create_schema = UserCreateSchema()
     user_get_schema = UserGetSchema()
 
+    @app.ensure_sync
     async def post(self):
+        loop = asyncio.get_event_loop()
+        print(loop)
         parser.add_argument("user_password", location="form")
         data = parser.parse_args()
 
         image_file = data.get("user_image")
+        async_tasks = []
 
         try:
-            user = self.user_create_schema.load(data)
-            user.create()
+            with db.session.begin():
+                user = self.user_create_schema.load(data)
+                db.session.add(user)
 
-            async_tasks = []
-
-            if image_file:
-                user.user_image.create()
-                task = save_file(image_file, user.user_image.file_url[1:])
-                async_tasks.append(task)
+                if image_file:
+                    db.session.add(user.user_image)
+                    task = save_file(image_file, user.user_image.file_url[1:])
+                    async_tasks.append(task)
 
             await asyncio.gather(*async_tasks)
 
-            return make_response(jsonify(self.user_get_schema.dump(user)), http_codes.HTTP_OK_200)
+            from pprint import pprint
+            pprint(self.user_get_schema.dump(user))
+
+            return make_response(jsonify(self.user_get_schema.dump(user)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
@@ -205,38 +213,37 @@ class UserDetailedViewSet(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     async def put(self, user_id: int):
-        user = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
-        requester = User.query.get(get_jwt_identity())
-
-        if requester is not user:
-            abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("User"))
-
-        data = parser.parse_args()
-        data = {key: value for key, value in data.items() if value}
-
-        old_image_file = user.user_image
-        new_image_file = data.get("user_image")
-
         try:
-            updated_user = self.user_update_schema.load(data)
+            with db.session.begin():
+                user = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+                requester = User.query.get(get_jwt_identity())
 
-            async_tasks = []
+                if requester is not user:
+                    abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("User"))
 
-            for key, value in updated_user.items():
-                setattr(user, key, value)
+                data = parser.parse_args()
+                data = {key: value for key, value in data.items() if value}
 
-            if new_image_file:
-                if old_image_file:
-                    task = delete_file(old_image_file.file_url[1:])
+                old_image_file = user.user_image
+                new_image_file = data.get("user_image")
+
+                updated_user = self.user_update_schema.load(data)
+                async_tasks = []
+
+                for key, value in updated_user.items():
+                    setattr(user, key, value)
+
+                if new_image_file:
+                    if old_image_file:
+                        task = delete_file(old_image_file.file_url[1:])
+                        async_tasks.append(task)
+                        db.session.delete(old_image_file)
+
+                    db.session.add(user.user_image)
+                    task = save_file(new_image_file, user.user_image.file_url[1:])
                     async_tasks.append(task)
-                    old_image_file.delete()
 
-                user.user_image.create()
-                task = save_file(new_image_file, user.user_image.file_url[1:])
-                async_tasks.append(task)
-
-            user.save_changes()
-            await asyncio.gather(*async_tasks)
+                await asyncio.gather(*async_tasks)
 
             return jsonify(self.user_get_schema.dump(user))
         except ValidationError as e:

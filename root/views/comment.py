@@ -9,7 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Comment, User
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
-from utilities import is_authorized_error_handler, save_file, delete_file
+from utilities import is_authorized_error_handler, save_file
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("comment_text", location="form")
@@ -75,7 +75,7 @@ class CommentDetailedView(Resource):
     @classmethod
     @is_authorized_error_handler()
     @jwt_required()
-    def delete(cls, comment_id):
+    async def delete(cls, comment_id):
         comment = Comment.query.get_or_404(comment_id, description=OBJECT_DOES_NOT_EXIST.format("Comment", comment_id))
 
         editor = User.query.get(get_jwt_identity())
@@ -111,8 +111,6 @@ class CommentDetailedView(Resource):
 
             if new_image_file:
                 if old_image_file:
-                    task = delete_file(old_image_file.file_url[1:])
-                    async_tasks.append(task)
                     old_image_file.delete()
 
                 comment.comment_image.create()
