@@ -1,5 +1,8 @@
-from db_init import db
+import asyncio
 import os
+from db_init import db
+from utilities import delete_file
+from sqlalchemy import event
 
 
 class File(db.Model):
@@ -26,3 +29,10 @@ class File(db.Model):
 
     def __repr__(self):
         return self.file_name
+
+
+@event.listens_for(File, "before_delete")
+def delete_file_upon_model_deletion(mapper, connection, target):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(delete_file(target.file_url[1:]))
