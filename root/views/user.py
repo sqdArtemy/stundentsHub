@@ -7,7 +7,7 @@ from flask import jsonify, make_response, redirect
 from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash
 from werkzeug.datastructures import FileStorage
-from models import User
+from models import User, Notification
 from db_init import db
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
@@ -137,11 +137,18 @@ class UserFollowView(Resource):
 
     @staticmethod
     def follow_user(follower: User, user_to_follow: User):
-        if user_to_follow in follower.user_following or follower in user_to_follow.user_followers:
-            abort(http_codes.HTTP_BAD_REQUEST_400, error_message="You are already following this user!")
+        with db.session.begin():
+            if user_to_follow in follower.user_following or follower in user_to_follow.user_followers:
+                abort(http_codes.HTTP_BAD_REQUEST_400, error_message="You are already following this user!")
 
-        follower.user_following.append(user_to_follow)
-        follower.save_changes()
+            follower.user_following.append(user_to_follow)
+
+            notification = Notification(
+                notification_text=f"User {follower} now follows you.",
+                notification_receiver=user_to_follow,
+                notification_sender_url=f"/user/{follower.user_id}"
+            )
+            db.session.add(notification)
 
         return user_to_follow
 

@@ -7,7 +7,7 @@ from datetime import datetime
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import jsonify, make_response
-from models import Post, User, File
+from models import Post, User, File, Notification
 from db_init import db
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema, FileCreateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
@@ -142,8 +142,8 @@ class PostRateView(Resource):
         post = Post.query.get_or_404(post_id, description=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
 
         rate_parser = reqparse.RequestParser(bundle_errors=True)
-        rate_parser.add_argument("likes", type=bool, location="form")
-        rate_parser.add_argument("dislikes", type=bool, location="form")
+        rate_parser.add_argument("likes", type=bool, location="form", required=True)
+        rate_parser.add_argument("dislikes", type=bool, location="form", required=True)
         data = rate_parser.parse_args()
 
         if data["likes"] is True and data["dislikes"] is True:
@@ -185,24 +185,33 @@ class PostRateView(Resource):
                     SELECT COUNT(*) AS count_dislikes
                     FROM user_dislikes_post
                     WHERE post_id = :post_id
+                ),
+                ratings AS (
+                    SELECT
+                        COALESCE((SELECT count_likes FROM likes_count), 0) AS likes,
+                        COALESCE((SELECT count_dislikes FROM dislikes_count), 0) AS dislikes
                 )
                 UPDATE posts
                 SET
-                    post_likes = (SELECT count_likes FROM likes_count),
-                    post_dislikes = (SELECT count_dislikes FROM dislikes_count),
-                    post_rating = ROUND(
-                        (
-                            COALESCE((SELECT count_likes FROM likes_count), 0) * 100 /
-                            (
-                                COALESCE((SELECT count_likes FROM likes_count), 0) +
-                                COALESCE((SELECT count_dislikes FROM dislikes_count), 0)
-                            )
-                        ), 2
-                    )
+                    post_likes = (SELECT likes FROM ratings),
+                    post_dislikes = (SELECT dislikes FROM ratings),
+                    post_rating = CASE
+                        WHEN ((SELECT likes FROM ratings) + (SELECT dislikes FROM ratings)) = 0 THEN 0.0
+                        ELSE ROUND((SELECT likes FROM ratings) * 100 / ((SELECT likes FROM ratings) + (SELECT dislikes FROM ratings)), 2)
+                    END
                 WHERE post_id = :post_id
-                """),
+            """),
             {"post_id": post_id}
         )
+
+        action = "liked" if data.get("likes") else "disliked" if data.get("dislikes") else ""
+        notification = Notification(
+            notification_text=f"Your post {post} have been {action} by {user}.",
+            notification_receiver=post.author.user_id,
+            notification_sender_url=f"/user/{user.user_id}"
+        )
+        notification.create()
+
         post.save_changes()
 
         return jsonify(self.post_get_schema.dump(post))

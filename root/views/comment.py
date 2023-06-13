@@ -7,7 +7,7 @@ from datetime import datetime
 from marshmallow import ValidationError
 from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import Comment, User
+from models import Comment, User, Notification
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file
@@ -36,7 +36,8 @@ class CommentListView(Resource):
         parser_post.add_argument("comment_parent", type=int, location="form")
         data = parser_post.parse_args()
 
-        data["comment_author"] = UserGetSchema(only=("user_id",)).dump(User.query.get(get_jwt_identity()))
+        comment_author = User.query.get(get_jwt_identity())
+        data["comment_author"] = UserGetSchema(only=("user_id",)).dump(comment_author)
         data["comment_created_at"] = datetime.utcnow().isoformat()
         image_file = data["comment_image"]
 
@@ -56,6 +57,22 @@ class CommentListView(Resource):
                     async_tasks.append(task)
 
                 await asyncio.gather(*async_tasks)
+
+                if comment_author is not comment.post.author:
+                    notification_post_commented = Notification(
+                        notification_text=f"Your post {comment.post} have been commented.",
+                        notification_receiver=comment.post.author,
+                        notification_sender_url=f"/comment/{comment.comment_id}"
+                    )
+                    db.session.add(notification_post_commented)
+
+                if comment.parent_comment and comment.parent_comment.author is not comment_author:
+                    notification_comment_answered = Notification(
+                        notification_text=f"Your comment {comment.comment_parent} received an answer!",
+                        notification_receiver=comment.parent_comment.author,
+                        notification_sender_url=f"/comment/{comment.comment_id}"
+                    )
+                    db.session.add(notification_comment_answered)
 
             return make_response(jsonify(self.comment_get_schema.dump(comment)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:

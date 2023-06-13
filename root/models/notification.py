@@ -10,7 +10,7 @@ class Notification(db.Model):
     notification_created_at = db.Column(db.DateTime, default=datetime.utcnow().isoformat())
     notification_sender_url = db.Column(db.String(100), nullable=True)
 
-    def save(self):
+    def create(self):
         db.session.add(self)
         db.session.commit()
 
@@ -22,7 +22,8 @@ class Notification(db.Model):
     def save_changes(cls):
         db.session.commit()
 
-    def __init__(self, notification_text, notification_receiver, notification_is_seen, notification_sender_url=None):
+    def __init__(self, notification_text, notification_receiver, notification_is_seen=False,
+                 notification_sender_url=None):
         self.notification_text = notification_text
         self.notification_receiver = notification_receiver
         self.notification_is_seen = notification_is_seen
