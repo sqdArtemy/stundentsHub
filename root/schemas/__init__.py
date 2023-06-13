@@ -5,3 +5,4 @@ from .faculty import FacultyCreateSchema, FacultyUpdateSchema, FacultyGetSchema
 from .post import PostCreateSchema, PostUpdateSchema, PostGetSchema
 from .comment import CommentCreateSchema, CommentUpdateSchema, CommentGetSchema
 from .file import FileCreateSchema, FileGetSchema
+from .notification import NotificationGetSchema

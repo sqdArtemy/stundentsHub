@@ -5,3 +5,4 @@ from .faculty import Faculty
 from .post import Post
 from .comment import Comment
 from .file import File
+from .notification import Notification

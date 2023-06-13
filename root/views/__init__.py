@@ -6,3 +6,4 @@ from .faculty import FacultyListView, FacultyDetailedView
 from .post import PostListView, PostDetailedView, PostRateView, PostAddFile, PostDeleteFile, PostBulkEditFiles
 from .comment import CommentListView, CommentDetailedView
 from .technical import RefreshJWTView
+from .notification import NotificationListView, NotificationDetailedView

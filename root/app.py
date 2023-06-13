@@ -6,14 +6,14 @@ from views import (
     UserRegisterView, UserDetailedViewSet, UserListViewSet, RoleDetailedViewSet, RoleListViewSet,
     UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
     CommentDetailedView, CommentListView, UserLoginView, RefreshJWTView, UserChangePassword, PostRateView, UserMeView,
-    UserFollowView, PostAddFile, PostDeleteFile, PostBulkEditFiles
+    UserFollowView, PostAddFile, PostDeleteFile, PostBulkEditFiles, NotificationListView, NotificationDetailedView
 )
 
 JWTManager(app)
 api = Api(app)
 cli = FlaskGroup(app)
 
-from models import User, Role, University, Faculty, Post, Comment, File
+from models import User, Role, University, Faculty, Post, Comment, File, Notification
 
 # Role urls
 api.add_resource(RoleListViewSet, "/roles")
@@ -42,6 +42,9 @@ api.add_resource(PostBulkEditFiles, "/post/<int:post_id>/files")
 # Comment urls
 api.add_resource(CommentListView, "/comments")
 api.add_resource(CommentDetailedView, "/comment/<int:comment_id>")
+# Notification urls
+api.add_resource(NotificationListView, "/notifications")
+api.add_resource(NotificationDetailedView, "/notification/<int:notification_id>")
 # Technical urls
 api.add_resource(RefreshJWTView, "/token/refresh")
 

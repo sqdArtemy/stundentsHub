@@ -29,6 +29,7 @@ class User(db.Model):
     user_faculty = db.Column(db.Integer, db.ForeignKey("faculties.faculty_id", ondelete="CASCADE"), nullable=True)
     user_posts = db.relationship("Post", backref="author", cascade="all, delete", lazy=True)
     user_comments = db.relationship("Comment", backref="author", cascade="all, delete", lazy=True)
+    user_notifications = db.relationship("Notification", backref="receiver", cascade="all, delete", lazy=True)
     user_followers = db.relationship(
         "User",
         secondary=user_follower,
