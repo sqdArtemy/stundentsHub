@@ -9,7 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import jsonify, make_response
 from models import Post, User, File
 from db_init import db
-from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema
+from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema, FileCreateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
 
@@ -17,7 +17,6 @@ parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("post_heading", location="form")
 parser.add_argument("post_text", location="form")
 parser.add_argument("post_image", type=FileStorage, location="files")
-parser.add_argument("post_files", type=FileStorage, location="files", action="append")
 
 
 class PostListView(Resource):
@@ -34,7 +33,9 @@ class PostListView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     async def post(self):
+        parser.add_argument("post_files", type=FileStorage, location="files", action="append")
         data = parser.parse_args()
+
         data["post_author"] = get_jwt_identity()
         data["post_created_at"] = datetime.utcnow().isoformat()
 
@@ -106,9 +107,7 @@ class PostDetailedView(Resource):
                 data = {key: value for key, value in data.items() if value}
 
                 old_image_file = post.post_image
-                old_files = post.post_files[:]
                 new_image_file = data.get("post_image")
-                new_files = data.get("post_files")
 
                 async_tasks = []
 
@@ -126,23 +125,7 @@ class PostDetailedView(Resource):
                     task = save_file(new_image_file, post.post_image.file_url[1:])
                     async_tasks.append(task)
 
-                if new_files:
-                    if old_files:
-                        for file in old_files:
-                            task = delete_file(file.file_url[1:])
-                            async_tasks.append(task)
-
-                        # Kind of "bulk delete", because sqlAlchemy does not have it out of box
-                        file_ids = [file.file_id for file in old_files]
-                        query = db.session.query(File).filter(File.file_id.in_(file_ids))
-                        query.delete()
-
-                    for index, file in enumerate(new_files):
-                        task = save_file(file, post.post_files[index].file_url[1:])
-                        async_tasks.append(task)
-
-                    db.session.add_all(post.post_files)
-                    await asyncio.gather(*async_tasks)
+                await asyncio.gather(*async_tasks)
 
             return jsonify(self.post_get_schema.dump(post))
         except ValidationError as e:
@@ -223,3 +206,135 @@ class PostRateView(Resource):
         post.save_changes()
 
         return jsonify(self.post_get_schema.dump(post))
+
+
+class PostAddFile(Resource):
+    post_get_schema = PostGetSchema()
+
+    @is_authorized_error_handler()
+    @jwt_required()
+    async def post(self, post_id):
+        try:
+            with db.session.begin():
+                post = Post.query.get_or_404(post_id, description=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+
+                editor = User.query.get(get_jwt_identity())
+                if editor is not post.author:
+                    abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("Post"))
+
+                file_add_parser = reqparse.RequestParser(bundle_errors=True)
+                file_add_parser.add_argument("file", type=FileStorage, location="files", required=True)
+                data = file_add_parser.parse_args()
+
+                file = data["file"]
+                file_model = FileCreateSchema().load({"file_raw": file})
+
+                await asyncio.gather(*[save_file(file, file_model.file_url[1:])])
+                db.session.add(file_model)
+
+                post.post_files.append(file_model)
+
+            return jsonify(self.post_get_schema.dump(post))
+        except ValidationError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+
+class PostDeleteFile(Resource):
+    post_get_schema = PostGetSchema()
+
+    @is_authorized_error_handler()
+    @jwt_required()
+    async def delete(self, post_id, file_id):
+        try:
+            with db.session.begin():
+                post = Post.query.get_or_404(post_id, description=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+                file = File.query.get_or_404(file_id, description=OBJECT_DOES_NOT_EXIST.format("File", file_id))
+
+                editor = User.query.get(get_jwt_identity())
+                if editor is not post.author:
+                    abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("Post"))
+
+                if file not in post.post_files:
+                    abort(
+                        http_codes.HTTP_BAD_REQUEST_400,
+                        error_message=f"File {file.file_name} is not in a post with id {post_id}."
+                    )
+
+                post.post_files.remove(file)
+                db.session.delete(file)
+
+            return jsonify(self.post_get_schema.dump(post))
+
+        except ValidationError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+
+class PostBulkEditFiles(Resource):
+    post_get_schema = PostGetSchema()
+
+    @is_authorized_error_handler()
+    @jwt_required()
+    async def post(self, post_id):
+        try:
+            with db.session.begin():
+                post = Post.query.get_or_404(post_id, description=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+
+                editor = User.query.get(get_jwt_identity())
+                if editor is not post.author:
+                    abort(http_codes.HTTP_FORBIDDEN_403, error_message=OBJECT_EDIT_NOT_ALLOWED.format("Post"))
+
+                files_bulk_add_parser = reqparse.RequestParser()
+                files_bulk_add_parser.add_argument(
+                    "files", type=FileStorage, location="files",
+                    action="append", required=True
+                )
+                data = files_bulk_add_parser.parse_args()
+
+                files = data["files"]
+                files_models = [FileCreateSchema().load({"file_raw": file}) for file in files]
+                async_tasks = []
+
+                for index, file in enumerate(files):
+                    task = save_file(file, files_models[index].file_url[1:])
+                    async_tasks.append(task)
+
+                db.session.add_all(files_models)
+                post.post_files.extend(files_models)
+
+                await asyncio.gather(*async_tasks)
+
+            return jsonify(self.post_get_schema.dump(post))
+        except ValidationError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+    @is_authorized_error_handler()
+    @jwt_required()
+    async def delete(self, post_id):
+        try:
+            with db.session.begin():
+                post = Post.query.get_or_404(post_id, description=OBJECT_DOES_NOT_EXIST.format("Post", post_id))
+
+                file_bulk_delete_parser = reqparse.RequestParser()
+                file_bulk_delete_parser.add_argument("files", type=int, action="append", required=True, location="form")
+                data = file_bulk_delete_parser.parse_args()
+
+                file_ids_to_delete = set(data["files"])
+                post_file_ids = {file.file_id for file in post.post_files}
+                if not file_ids_to_delete.issubset(post_file_ids):
+                    abort(
+                        http_codes.HTTP_BAD_REQUEST_400,
+                        error_message=f"Post with id:"
+                                      f" {post_id} does not have files with ids:{file_ids_to_delete-post_file_ids}"
+                    )
+
+                deleted_objects = [file for file in post.post_files if file.file_id in file_ids_to_delete]
+                post.post_files = [file for file in post.post_files if file.file_id not in file_ids_to_delete]
+
+                for file in deleted_objects:
+                    db.session.delete(file)
+
+                return jsonify(self.post_get_schema.dump(post))
+        except ValidationError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+# TODO: Add urls for post comments into json data

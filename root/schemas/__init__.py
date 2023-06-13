@@ -4,4 +4,4 @@ from .university import UniversityCreateSchema, UniversityGetSchema, UniversityU
 from .faculty import FacultyCreateSchema, FacultyUpdateSchema, FacultyGetSchema
 from .post import PostCreateSchema, PostUpdateSchema, PostGetSchema
 from .comment import CommentCreateSchema, CommentUpdateSchema, CommentGetSchema
-from .file import FileCreateSchema
+from .file import FileCreateSchema, FileGetSchema

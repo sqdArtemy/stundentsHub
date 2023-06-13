@@ -6,7 +6,7 @@ from views import (
     UserRegisterView, UserDetailedViewSet, UserListViewSet, RoleDetailedViewSet, RoleListViewSet,
     UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
     CommentDetailedView, CommentListView, UserLoginView, RefreshJWTView, UserChangePassword, PostRateView, UserMeView,
-    UserFollowView
+    UserFollowView, PostAddFile, PostDeleteFile, PostBulkEditFiles
 )
 
 JWTManager(app)
@@ -36,6 +36,9 @@ api.add_resource(FacultyDetailedView, "/faculty/<int:faculty_id>")
 api.add_resource(PostListView, "/posts")
 api.add_resource(PostDetailedView, "/post/<int:post_id>")
 api.add_resource(PostRateView, "/post/<int:post_id>/rate")
+api.add_resource(PostAddFile, "/post/<int:post_id>/file")
+api.add_resource(PostDeleteFile, "/post/<int:post_id>/file/<int:file_id>")
+api.add_resource(PostBulkEditFiles, "/post/<int:post_id>/files")
 # Comment urls
 api.add_resource(CommentListView, "/comments")
 api.add_resource(CommentDetailedView, "/comment/<int:comment_id>")
