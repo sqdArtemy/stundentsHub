@@ -1,17 +1,20 @@
+import json
 import http_codes
 import asyncio
+from sqlalchemy.orm import joinedload
 from app_init import app
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
-from flask import jsonify, make_response, redirect
+from flask import jsonify, make_response, redirect, request, url_for
 from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash
 from werkzeug.datastructures import FileStorage
-from models import User, Notification
+from models import User, Notification, Faculty, Role, University
 from db_init import db
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
+from .mixins import PaginationMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -185,14 +188,65 @@ class UserFollowView(Resource):
         return jsonify(self.user_get_schema.dump(user_to_follow))
 
 
-class UserListViewSet(Resource):
-    users_schema = UserGetSchema(many=True)
+class UserListViewSet(Resource, PaginationMixin):
+    users_get_schema = UserGetSchema(many=True)
 
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        users = User.query.all()
-        return jsonify(self.users_schema.dump(users))
+        filters = request.args.get("filters")
+        sort_by = request.args.get("sort_by")
+        sort_order = request.args.get("sort_order", "asc")
+
+        users_query = User.query.options(
+            joinedload(User.role),
+            joinedload(User.faculty),
+            joinedload(User.university)
+        ).order_by(User.user_id)
+
+        try:
+            if filters:
+                filters_dict = json.loads(filters)
+                filter_mappings = {
+                    "user_role": (User.role.has, Role.role_name),
+                    "user_faculty": (User.faculty.has, Faculty.faculty_name),
+                    "user_university": (User.university.has, University.university_name),
+                }
+
+                for key, value in filters_dict.items():
+                    if key in filter_mappings.keys():
+                        filter_func, filter_field = filter_mappings[key]
+                        users_query = users_query.filter(filter_func(filter_field == value))
+                    else:
+                        users_query = users_query.filter(getattr(User, key) == value)
+
+            if sort_by:
+                column = getattr(User, sort_by)
+                sort_mappings = {
+                    "user_role": Role.role_name,
+                    "user_faculty": Faculty.faculty_name,
+                    "user_university": University.university_name,
+                }
+
+                if sort_by in sort_mappings:
+                    column = sort_mappings.get(sort_by, getattr(User, sort_by))
+
+                if sort_order.lower() == "desc":
+                    column = column.desc()
+
+                users_query = users_query.order_by(column)
+
+        except AttributeError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+        response = self.get_paginated_response(
+            query=users_query,
+            items_schema=self.users_get_schema,
+            model_plural_name="users",
+            count_field_name="user_count"
+        )
+
+        return response
 
 
 class UserDetailedViewSet(Resource):

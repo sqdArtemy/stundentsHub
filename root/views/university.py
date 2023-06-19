@@ -1,15 +1,18 @@
+import json
 import http_codes
 import asyncio
 from db_init import db
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
 from marshmallow import ValidationError
-from flask import jsonify, make_response
+from flask import jsonify, make_response, request, url_for
 from flask_jwt_extended import jwt_required
 from models import University
 from schemas import UniversityGetSchema, UniversityCreateSchema, UniversityUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
-from utilities import is_authorized_error_handler, save_file, delete_file
+from utilities import is_authorized_error_handler, save_file
+from .mixins import PaginationMixin
+
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("university_name", location="form")
@@ -18,7 +21,7 @@ parser.add_argument("university_phone", location="form")
 parser.add_argument("university_image", type=FileStorage, location="files")
 
 
-class UniversityListView(Resource):
+class UniversityListView(Resource, PaginationMixin):
     universities_get_schema = UniversityGetSchema(many=True)
     university_get_schema = UniversityGetSchema()
     university_create_schema = UniversityCreateSchema()
@@ -26,8 +29,37 @@ class UniversityListView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        universities = University.query.all()
-        return jsonify(self.universities_get_schema.dump(universities))
+        universities_query = University.query
+
+        filters = request.args.get("filters")
+        sort_by = request.args.get("sort_by")
+        sort_order = request.args.get("sort_order", "asc")
+
+        try:
+            if filters:
+                filters_dict = json.loads(filters)
+                for key, value in filters_dict.items():
+                    universities_query = universities_query.filter(getattr(University, key) == value)
+
+            if sort_by:
+                column = getattr(University, sort_by)
+
+                if sort_order.lower() == "desc":
+                    column = column.desc()
+
+                universities_query = universities_query.order_by(column)
+
+        except AttributeError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+        response = self.get_paginated_response(
+            query=universities_query,
+            items_schema=self.universities_get_schema,
+            model_plural_name="universities",
+            count_field_name="university_count"
+        )
+
+        return response
 
     @is_authorized_error_handler()
     @jwt_required()

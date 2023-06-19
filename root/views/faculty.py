@@ -1,19 +1,23 @@
+import json
 import http_codes
+from sqlalchemy.orm import joinedload
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
-from flask import jsonify, make_response
+from flask import jsonify, make_response, request
 from flask_jwt_extended import jwt_required
-from models import Faculty
+from models import Faculty, University
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler
+from .mixins import PaginationMixin
+
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("faculty_name", location="form")
 parser.add_argument("faculty_university", type=int, location="form")
 
 
-class FacultyListView(Resource):
+class FacultyListView(Resource, PaginationMixin):
     faculties_get_schema = FacultyGetSchema(many=True)
     faculty_get_schema = FacultyGetSchema()
     faculty_create_schema = FacultyCreateSchema()
@@ -21,8 +25,45 @@ class FacultyListView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        faculties = Faculty.query.all()
-        return jsonify(self.faculties_get_schema.dump(faculties))
+        filters = request.args.get("filters")
+        sort_by = request.args.get("sort_by")
+        sort_order = request.args.get("sort_order", "asc")
+
+        faculties_query = Faculty.query.options(joinedload(Faculty.university)).order_by(Faculty.faculty_id)
+
+        try:
+            if filters:
+                filters_dict = json.loads(filters)
+                for key, value in filters_dict.items():
+                    if key == "faculty_university":
+                        faculties_query = faculties_query.filter(
+                            Faculty.university.has(University.university_name.ilike(value))
+                        )
+                    else:
+                        faculties_query = faculties_query.filter(getattr(Faculty, key) == value)
+
+                if sort_by:
+                    column = getattr(University, sort_by)
+
+                    if sort_by == "faculty_university":
+                        column = University.university_name
+
+                    if sort_order.lower() == "desc":
+                        column = column.desc()
+
+                    faculties_query = faculties_query.order_by(column)
+
+        except AttributeError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+        response = self.get_paginated_response(
+            query=faculties_query,
+            items_schema=self.faculties_get_schema,
+            model_plural_name="faculties",
+            count_field_name="faculty_count"
+        )
+
+        return response
 
     @is_authorized_error_handler()
     @jwt_required()

@@ -1,20 +1,62 @@
+import json
 import http_codes
+from sqlalchemy.orm import joinedload
+from sqlalchemy import or_
 from models import Notification, User
-from flask import jsonify
+from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from schemas import NotificationGetSchema
 from flask_restful import Resource, reqparse, abort
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_DELETE_NOT_ALLOWED, OBJECT_EDIT_NOT_ALLOWED, \
     OBJECT_VIEW_NOT_ALLOWED
 from utilities import is_authorized_error_handler
+from .mixins import PaginationMixin
 
 
-class NotificationListView(Resource):
+class NotificationListView(Resource, PaginationMixin):
     notifications_get_schema = NotificationGetSchema(many=True)
 
     def get(self):
-        notifications = Notification.query.all()
-        return jsonify(self.notifications_get_schema.dump(notifications))
+        filters = request.args.get("filters")
+        sort_by = request.args.get("sort_by")
+        sort_order = request.args.get("sort_order", "asc")
+
+        notifications_query = Notification.query.options(
+            joinedload(Notification.receiver)
+        ).order_by(Notification.notification_id)
+
+        if filters:
+            filters_dict = json.loads(filters)
+            for key, value in filters_dict.items():
+                if key == "notification_receiver":
+                    receiver_conditions = [
+                        Notification.receiver.has(User.user_name == value),
+                        Notification.receiver.has(User.user_id == value),
+                        Notification.receiver.has(User.user_email == value)
+                    ]
+                    notifications_query = notifications_query.filter(or_(*receiver_conditions))
+                else:
+                    notifications_query = notifications_query.filter(getattr(Notification, key) == value)
+
+        if sort_by:
+            column = getattr(User, sort_by)
+
+            if sort_by == "notification_receiver":
+                column = User.user_name
+
+                if sort_order.lower() == "desc":
+                    column = column.desc()
+
+            notifications_query = notifications_query.order_by(column)
+
+        response = self.get_paginated_response(
+            query=notifications_query,
+            items_schema=self.notifications_get_schema,
+            model_plural_name="notifications",
+            count_field_name="notification_count"
+        )
+
+        return response
 
 
 class NotificationDetailedView(Resource):

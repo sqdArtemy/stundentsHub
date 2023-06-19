@@ -3,6 +3,9 @@ from werkzeug.security import generate_password_hash
 from models import User, Role, Faculty, University
 from app_init import ma
 from .file import FileCreateSchema, FileGetSchema
+from .university import UniversityGetSchema
+from .role import RoleGetSchema
+from .faculty import FacultyGetSchema
 from utilities import is_email_valid, instance_exists_by_id, is_phone_valid, is_name_valid, is_password_valid
 from db_init import db
 
@@ -65,13 +68,18 @@ class UserSchemaMixin:
 
 class UserGetSchema(ma.SQLAlchemyAutoSchema):
     user_image = fields.Nested(FileGetSchema())
+    university = fields.Nested(UniversityGetSchema(only=("university_id", "university_name")),
+                               data_key="user_university")
+    faculty = fields.Nested(FacultyGetSchema(only=("faculty_id", "faculty_name")), data_key="user_faculty")
+    role = fields.Nested(RoleGetSchema(only=("role_id", "role_name")), data_key="user_role")
 
     class Meta:
         model = User
         ordered = True
         fields = ("user_id", "user_name", "user_surname", "user_email", "user_card_id",
-                  "user_birthday", "user_image", "user_role", "user_faculty", "user_university", "user_enrolment_year",
-                  "user_tg_link", "user_phone", "user_followers", "user_following", "user_liked_posts", "user_disliked_posts")
+                  "user_birthday", "user_image", "role", "faculty", "university", "user_enrolment_year",
+                  "user_tg_link", "user_phone", "user_followers", "user_following", "user_liked_posts",
+                  "user_disliked_posts")
         include_relationships = True
         load_instance = True
         unknown = EXCLUDE

@@ -1,17 +1,22 @@
+import json
 import http_codes
 import asyncio
+from sqlalchemy.orm import joinedload
+from sqlalchemy import or_
 from sqlalchemy import text
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
 from datetime import datetime
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from flask import jsonify, make_response
+from flask import jsonify, make_response, request
 from models import Post, User, File, Notification
 from db_init import db
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema, FileCreateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
+from .mixins import PaginationMixin
+
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("post_heading", location="form")
@@ -19,7 +24,7 @@ parser.add_argument("post_text", location="form")
 parser.add_argument("post_image", type=FileStorage, location="files")
 
 
-class PostListView(Resource):
+class PostListView(Resource, PaginationMixin):
     posts_get_schema = PostGetSchema(many=True)
     post_get_schema = PostGetSchema()
     post_create_schema = PostCreateSchema()
@@ -27,8 +32,48 @@ class PostListView(Resource):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        posts = Post.query.all()
-        return jsonify(self.posts_get_schema.dump(posts))
+        filters = request.args.get("filters")
+        sort_by = request.args.get("sort_by")
+        sort_order = request.args.get("sort_order", "asc")
+
+        posts_query = Post.query.options(joinedload(Post.author)).order_by(Post.post_id)
+
+        try:
+            if filters:
+                filters_dict = json.loads(filters)
+                for key, value in filters_dict.items():
+                    if key == "post_author":
+                        author_conditions = [
+                            Post.author.has(User.user_name.ilike(value)),
+                            Post.author.has(User.user_id.ilike(value)),
+                            Post.author.has(User.user_email.ilike(value))
+                        ]
+                        posts_query = posts_query.filter(or_(*author_conditions))
+                    else:
+                        posts_query = posts_query.filter(getattr(Post, key) == value)
+
+            if sort_by:
+                column = getattr(User, sort_by)
+
+                if sort_by == "post_author":
+                    column = User.user_id
+
+                    if sort_order.lower() == "desc":
+                        column = column.desc()
+
+                posts_query = posts_query.order_by(column)
+
+        except AttributeError as e:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
+
+        response = self.get_paginated_response(
+            query=posts_query,
+            items_schema=self.posts_get_schema,
+            model_plural_name="posts",
+            count_field_name="post_count"
+        )
+
+        return response
 
     @is_authorized_error_handler()
     @jwt_required()
