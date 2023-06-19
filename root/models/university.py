@@ -1,7 +1,8 @@
 from db_init import db
+from .mixins import ModelMixinQuerySimplifier
 
 
-class University(db.Model):
+class University(db.Model, ModelMixinQuerySimplifier):
     __tablename__ = "universities"
 
     university_id = db.Column(db.Integer, primary_key=True)
@@ -12,18 +13,6 @@ class University(db.Model):
     university_faculties = db.relationship("Faculty", backref="university", cascade="all, delete", lazy=True)
     university_image_id = db.Column(db.Integer, db.ForeignKey("files.file_id", ondelete="CASCADE"), nullable=True)
     university_image = db.relationship("File", backref="uploaded_by_uni", cascade="all, delete", lazy=True)
-
-    def create(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    @staticmethod
-    def save_changes():
-        db.session.commit()
 
     def __init__(self, university_name: str, university_email: str, university_phone: str, university_image=None):
         self.university_name = university_name

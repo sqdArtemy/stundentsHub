@@ -1,8 +1,9 @@
 from db_init import db
 from datetime import datetime
+from .mixins import ModelMixinQuerySimplifier
 
 
-class Comment(db.Model):
+class Comment(db.Model, ModelMixinQuerySimplifier):
     __tablename__ = "comments"
 
     comment_id = db.Column(db.Integer, primary_key=True)
@@ -16,18 +17,6 @@ class Comment(db.Model):
                                     cascade="all, delete", lazy=True)
     comment_image_id = db.Column(db.Integer, db.ForeignKey("files.file_id", ondelete="CASCADE"), nullable=True)
     comment_image = db.relationship("File", backref="uploaded_in_comment", cascade="all, delete", lazy=True)
-
-    def create(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    @staticmethod
-    def save_changes():
-        db.session.commit()
 
     def __init__(self, comment_text: str, comment_created_at: str, comment_post: int,
                  author, parent_comment, comment_image=None, comment_modified_at=None, comment_parent=None):

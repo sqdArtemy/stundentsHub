@@ -1,6 +1,7 @@
 from db_init import db
 from datetime import datetime
 from .file import File
+from .mixins import ModelMixinQuerySimplifier
 
 
 user_likes_post = db.Table(
@@ -16,7 +17,7 @@ user_dislikes_post = db.Table(
 )
 
 
-class Post(db.Model):
+class Post(db.Model, ModelMixinQuerySimplifier):
     __tablename__ = "posts"
 
     post_id = db.Column(db.Integer, primary_key=True)
@@ -36,18 +37,6 @@ class Post(db.Model):
                                  lazy=True, foreign_keys=[post_image_id])
     post_files = db.relationship("File", backref="post", cascade="all, delete",
                                  lazy='dynamic',  foreign_keys=[File.file_post_id])
-
-    def create(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    @staticmethod
-    def save_changes():
-        db.session.commit()
 
     def __init__(self, post_heading: str, post_text: str, post_created_at: str,
                  post_author: int, post_modified_at=None, post_image=None, post_files=None):

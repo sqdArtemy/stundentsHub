@@ -1,4 +1,6 @@
 from db_init import db
+from .mixins import ModelMixinQuerySimplifier
+
 
 user_follower = db.Table(
     "user_follower",
@@ -7,7 +9,7 @@ user_follower = db.Table(
 )
 
 
-class User(db.Model):
+class User(db.Model, ModelMixinQuerySimplifier):
     __tablename__ = "users"
 
     user_id = db.Column(db.Integer, primary_key=True)
@@ -38,18 +40,6 @@ class User(db.Model):
         backref="user_following"
     )
 
-    def create(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    @staticmethod
-    def save_changes():
-        db.session.commit()
-
     def __int__(self,
                 user_name: str,
                 user_surname: str,
@@ -60,7 +50,7 @@ class User(db.Model):
                 user_enrolment_year: str,
                 user_university: int,
                 user_faculty: int,
-                user_image = None
+                user_image=None
                 ):
         self.user_name = user_name
         self.user_surname = user_surname

@@ -1,7 +1,8 @@
 from db_init import db
+from .mixins import ModelMixinQuerySimplifier
 
 
-class Faculty(db.Model):
+class Faculty(db.Model, ModelMixinQuerySimplifier):
     __tablename__ = "faculties"
 
     faculty_id = db.Column(db.Integer, primary_key=True)
@@ -10,18 +11,6 @@ class Faculty(db.Model):
         db.Integer, db.ForeignKey("universities.university_id", ondelete="CASCADE"), nullable=False
     )
     faculty_users = db.relationship("User", backref="faculty", cascade="all, delete", lazy=True)
-
-    def create(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    @staticmethod
-    def save_changes():
-        db.session.commit()
 
     def __init__(self, faculty_name: str, faculty_university: int):
         self.faculty_name = faculty_name
