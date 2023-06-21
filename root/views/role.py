@@ -1,4 +1,3 @@
-import json
 import http_codes
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
@@ -8,14 +7,13 @@ from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin
-
+from .mixins import PaginationMixin, FilterMixin
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("role_name", location="form", help=MSG_MISSING.format("role_name"))
 
 
-class RoleListViewSet(Resource, PaginationMixin):
+class RoleListViewSet(Resource, PaginationMixin, FilterMixin):
     roles_get_schema = RoleGetSchema(many=True)
     role_get_schema = RoleGetSchema()
     role_create_schema = RoleCreateSchema()
@@ -31,9 +29,11 @@ class RoleListViewSet(Resource, PaginationMixin):
 
         try:
             if filters:
-                filters_dict = json.loads(filters)
-                for key, value in filters_dict.items():
-                    roles_query = roles_query.filter(getattr(Role, key) == value)
+                roles_query = self.get_filtered_query(
+                    query=roles_query,
+                    model=Role,
+                    filters=filters
+                )
 
             if sort_by:
                 column = getattr(Role, sort_by)

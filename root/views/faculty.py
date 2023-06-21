@@ -1,4 +1,3 @@
-import json
 import http_codes
 from sqlalchemy.orm import joinedload
 from flask_restful import Resource, abort, reqparse
@@ -9,7 +8,7 @@ from models import Faculty, University
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin
+from .mixins import PaginationMixin, FilterMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -17,7 +16,7 @@ parser.add_argument("faculty_name", location="form")
 parser.add_argument("faculty_university", type=int, location="form")
 
 
-class FacultyListView(Resource, PaginationMixin):
+class FacultyListView(Resource, PaginationMixin, FilterMixin):
     faculties_get_schema = FacultyGetSchema(many=True)
     faculty_get_schema = FacultyGetSchema()
     faculty_create_schema = FacultyCreateSchema()
@@ -33,14 +32,13 @@ class FacultyListView(Resource, PaginationMixin):
 
         try:
             if filters:
-                filters_dict = json.loads(filters)
-                for key, value in filters_dict.items():
-                    if key == "faculty_university":
-                        faculties_query = faculties_query.filter(
-                            Faculty.university.has(University.university_name.ilike(value))
-                        )
-                    else:
-                        faculties_query = faculties_query.filter(getattr(Faculty, key) == value)
+                filter_mappings = {"faculty_university": (Faculty.university, University.university_name)}
+                faculties_query = self.get_filtered_query(
+                    query=faculties_query,
+                    model=Faculty,
+                    filters=filters,
+                    filter_mappings=filter_mappings
+                )
 
                 if sort_by:
                     column = getattr(University, sort_by)

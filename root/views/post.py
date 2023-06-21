@@ -1,4 +1,3 @@
-import json
 import http_codes
 import asyncio
 from sqlalchemy.orm import joinedload
@@ -14,7 +13,7 @@ from db_init import db
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema, FileCreateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
-from .mixins import PaginationMixin
+from .mixins import PaginationMixin, FilterMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -23,7 +22,7 @@ parser.add_argument("post_text", location="form")
 parser.add_argument("post_image", type=FileStorage, location="files")
 
 
-class PostListView(Resource, PaginationMixin):
+class PostListView(Resource, PaginationMixin, FilterMixin):
     posts_get_schema = PostGetSchema(many=True)
     post_get_schema = PostGetSchema()
     post_create_schema = PostCreateSchema()
@@ -39,12 +38,13 @@ class PostListView(Resource, PaginationMixin):
 
         try:
             if filters:
-                filters_dict = json.loads(filters)
-                for key, value in filters_dict.items():
-                    if key == "post_author":
-                        posts_query = posts_query.filter(Post.author.has(User.user_id.ilike(value)))
-                    else:
-                        posts_query = posts_query.filter(getattr(Post, key) == value)
+                filter_mappings = {"post_author": (Post.author, User.user_id)}
+                posts_query = self.get_filtered_query(
+                    query=posts_query,
+                    model=Post,
+                    filters=filters,
+                    filter_mappings=filter_mappings
+                )
 
             if sort_by:
                 column = getattr(User, sort_by)

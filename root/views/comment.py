@@ -1,8 +1,6 @@
-import json
 import http_codes
 import asyncio
 from sqlalchemy.orm import joinedload
-from sqlalchemy import or_
 from db_init import db
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
@@ -14,7 +12,7 @@ from models import Comment, User, Notification, Post
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file
-from .mixins import PaginationMixin
+from .mixins import PaginationMixin, FilterMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -22,7 +20,7 @@ parser.add_argument("comment_text", location="form")
 parser.add_argument("comment_image", type=FileStorage, location="files")
 
 
-class CommentListView(Resource, PaginationMixin):
+class CommentListView(Resource, PaginationMixin, FilterMixin):
     comments_get_schema = CommentGetSchema(many=True)
     comment_get_schema = CommentGetSchema()
     comment_create_schema = CommentCreateSchema()
@@ -42,19 +40,18 @@ class CommentListView(Resource, PaginationMixin):
 
         try:
             if filters:
-                filters_dict = json.loads(filters)
-                filters_mappings = {
-                    "comment_parent": (Comment.parent_comment.has, Comment.comment_id),
-                    "comment_post": (Comment.post.has, Post.post_id),
-                    "comment_author": (Comment.author.has, User.user_id)
+                filter_mappings = {
+                    "comment_parent": (Comment.parent_comment, Comment.comment_id),
+                    "comment_post": (Comment.post, Post.post_id),
+                    "comment_author": (Comment.author, User.user_id)
                 }
 
-                for key, value in filters_dict.items():
-                    if key in filters_mappings:
-                        filter_func, filter_field = filters_mappings[key]
-                        comments_query = comments_query.filter(filter_func(filter_field == value))
-                    else:
-                        comments_query = comments_query.filter(getattr(Comment, key) == value)
+                comments_query = self.get_filtered_query(
+                    query=comments_query,
+                    model=Comment,
+                    filters=filters,
+                    filter_mappings=filter_mappings
+                )
 
             if sort_by:
                 column = getattr(User, sort_by)

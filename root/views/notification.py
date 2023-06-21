@@ -1,4 +1,3 @@
-import json
 import http_codes
 from sqlalchemy.orm import joinedload
 from models import Notification, User
@@ -9,10 +8,10 @@ from flask_restful import Resource, reqparse, abort
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_DELETE_NOT_ALLOWED, OBJECT_EDIT_NOT_ALLOWED, \
     OBJECT_VIEW_NOT_ALLOWED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin
+from .mixins import PaginationMixin, FilterMixin
 
 
-class NotificationListView(Resource, PaginationMixin):
+class NotificationListView(Resource, PaginationMixin, FilterMixin):
     notifications_get_schema = NotificationGetSchema(many=True)
 
     def get(self):
@@ -25,12 +24,13 @@ class NotificationListView(Resource, PaginationMixin):
         ).order_by(Notification.notification_id)
 
         if filters:
-            filters_dict = json.loads(filters)
-            for key, value in filters_dict.items():
-                if key == "notification_receiver":
-                    notifications_query = notifications_query.filter(Notification.receiver.has(User.user_id == value))
-                else:
-                    notifications_query = notifications_query.filter(getattr(Notification, key) == value)
+            filter_mappings = {"notification_receiver": (Notification.receiver, User.user_id)}
+            notifications_query = self.get_filtered_query(
+                query=notifications_query,
+                model=Notification,
+                filters=filters,
+                filter_mappings=filter_mappings
+            )
 
         if sort_by:
             column = getattr(User, sort_by)

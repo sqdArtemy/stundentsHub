@@ -1,11 +1,10 @@
-import json
 import http_codes
 import asyncio
 from sqlalchemy.orm import joinedload
 from app_init import app
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
-from flask import jsonify, make_response, redirect, request, url_for
+from flask import jsonify, make_response, redirect, request
 from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash
 from werkzeug.datastructures import FileStorage
@@ -14,7 +13,7 @@ from db_init import db
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
-from .mixins import PaginationMixin
+from .mixins import PaginationMixin, FilterMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -188,7 +187,7 @@ class UserFollowView(Resource):
         return jsonify(self.user_get_schema.dump(user_to_follow))
 
 
-class UserListViewSet(Resource, PaginationMixin):
+class UserListViewSet(Resource, PaginationMixin, FilterMixin):
     users_get_schema = UserGetSchema(many=True)
 
     @is_authorized_error_handler()
@@ -206,19 +205,18 @@ class UserListViewSet(Resource, PaginationMixin):
 
         try:
             if filters:
-                filters_dict = json.loads(filters)
                 filter_mappings = {
-                    "user_role": (User.role.has, Role.role_name),
-                    "user_faculty": (User.faculty.has, Faculty.faculty_name),
-                    "user_university": (User.university.has, University.university_name),
+                    "user_role": (User.role, Role.role_name),
+                    "user_faculty": (User.faculty, Faculty.faculty_name),
+                    "user_university": (User.university, University.university_name),
                 }
 
-                for key, value in filters_dict.items():
-                    if key in filter_mappings.keys():
-                        filter_func, filter_field = filter_mappings[key]
-                        users_query = users_query.filter(filter_func(filter_field == value))
-                    else:
-                        users_query = users_query.filter(getattr(User, key) == value)
+                users_query = self.get_filtered_query(
+                    query=users_query,
+                    model=User,
+                    filters=filters,
+                    filter_mappings=filter_mappings
+                )
 
             if sort_by:
                 column = getattr(User, sort_by)

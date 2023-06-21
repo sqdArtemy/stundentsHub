@@ -1,3 +1,4 @@
+import json
 from flask import request, url_for
 
 
@@ -23,3 +24,17 @@ class PaginationMixin:
         }
 
         return response
+
+
+class FilterMixin:
+    def get_filtered_query(self, query, model, filters, filter_mappings={}):
+        filters_dict = json.loads(filters)
+
+        for key, value in filters_dict.items():
+            if key in filter_mappings.keys():
+                filter_nested_field, filter_field = filter_mappings[key]
+                query = query.filter(filter_nested_field.has(filter_field == value))
+            else:
+                query = query.filter(getattr(model, key) == value)
+
+        return query
