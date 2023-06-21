@@ -2,7 +2,6 @@ import json
 import http_codes
 import asyncio
 from sqlalchemy.orm import joinedload
-from sqlalchemy import or_
 from sqlalchemy import text
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
@@ -43,12 +42,7 @@ class PostListView(Resource, PaginationMixin):
                 filters_dict = json.loads(filters)
                 for key, value in filters_dict.items():
                     if key == "post_author":
-                        author_conditions = [
-                            Post.author.has(User.user_name.ilike(value)),
-                            Post.author.has(User.user_id.ilike(value)),
-                            Post.author.has(User.user_email.ilike(value))
-                        ]
-                        posts_query = posts_query.filter(or_(*author_conditions))
+                        posts_query = posts_query.filter(Post.author.has(User.user_id.ilike(value)))
                     else:
                         posts_query = posts_query.filter(getattr(Post, key) == value)
 

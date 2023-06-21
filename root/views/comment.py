@@ -46,17 +46,13 @@ class CommentListView(Resource, PaginationMixin):
                 filters_mappings = {
                     "comment_parent": (Comment.parent_comment.has, Comment.comment_id),
                     "comment_post": (Comment.post.has, Post.post_id),
-                    "comment_author": (Comment.author.has, [User.user_name, User.user_id, User.user_email])
+                    "comment_author": (Comment.author.has, User.user_id)
                 }
 
                 for key, value in filters_dict.items():
                     if key in filters_mappings:
                         filter_func, filter_field = filters_mappings[key]
-                        if key == "comment_author":
-                            author_conditions = [filter_func(field.ilike(value)) for field in filter_field]
-                            comments_query = comments_query.filter(or_(*author_conditions))
-                        else:
-                            comments_query = comments_query.filter(filter_func(filter_field == value))
+                        comments_query = comments_query.filter(filter_func(filter_field == value))
                     else:
                         comments_query = comments_query.filter(getattr(Comment, key) == value)
 

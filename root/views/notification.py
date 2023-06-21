@@ -1,7 +1,6 @@
 import json
 import http_codes
 from sqlalchemy.orm import joinedload
-from sqlalchemy import or_
 from models import Notification, User
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -29,12 +28,7 @@ class NotificationListView(Resource, PaginationMixin):
             filters_dict = json.loads(filters)
             for key, value in filters_dict.items():
                 if key == "notification_receiver":
-                    receiver_conditions = [
-                        Notification.receiver.has(User.user_name == value),
-                        Notification.receiver.has(User.user_id == value),
-                        Notification.receiver.has(User.user_email == value)
-                    ]
-                    notifications_query = notifications_query.filter(or_(*receiver_conditions))
+                    notifications_query = notifications_query.filter(Notification.receiver.has(User.user_id == value))
                 else:
                     notifications_query = notifications_query.filter(getattr(Notification, key) == value)
 
