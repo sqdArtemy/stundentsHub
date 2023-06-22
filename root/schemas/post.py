@@ -1,5 +1,6 @@
-from marshmallow import fields, validate, validates, ValidationError, EXCLUDE, pre_load
-from .comment import CommentGetSchema
+import json
+import urllib
+from marshmallow import fields, validate, validates, ValidationError, EXCLUDE, pre_load, post_dump
 from .user import UserGetSchema
 from .file import FileCreateSchema, FileGetSchema
 from models import Post, User
@@ -37,10 +38,27 @@ class PostSchemaMixin:
 
 
 class PostGetSchema(ma.SQLAlchemyAutoSchema):
-    post_comments = fields.Nested(CommentGetSchema(), many=True)
     author = fields.Nested(UserGetSchema(only=("user_id", "user_name", "user_surname")), data_key="post_author")
     post_image = fields.Nested(FileGetSchema())
     post_files = fields.List(fields.Nested(FileGetSchema()))
+
+    def get_post_comments_link(self, post_data):
+        post_id = post_data.get("post_id")
+        filters = {"comment_post": post_id}
+        filters_json = json.dumps(filters)
+        encoded_filters = urllib.parse.quote(filters_json)
+
+        return f'/comments?filters={encoded_filters}'
+
+    @post_dump(pass_many=True)
+    def add_comments_links(self, data, many, **kwargs):
+        if many:
+            for post in data:
+                post["post_comments_link"] = self.get_post_comments_link(post)
+        else:
+            data["post_comments_link"] = self.get_post_comments_link(data)
+
+        return data
 
     class Meta:
         model = Post
