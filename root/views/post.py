@@ -7,14 +7,14 @@ from werkzeug.datastructures import FileStorage
 from datetime import datetime
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from flask import jsonify, make_response, request
+from flask import jsonify, make_response
 from models import Post, User, File, Notification
 from db_init import db
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema, FileCreateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
 from .mixins import PaginationMixin, FilterMixin, SortMixin
-
+from .technical import sort_filter_parser
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("post_heading", location="form")
@@ -30,9 +30,9 @@ class PostListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        filters = request.args.get("filters")
-        sort_by = request.args.get("sort_by")
-        sort_order = request.args.get("sort_order", "asc")
+        data = sort_filter_parser.parse_args()
+        sort_by = data.get("sort_by")
+        filters = data.get("filters")
 
         posts_query = Post.query.options(joinedload(Post.author))
 
@@ -51,8 +51,7 @@ class PostListView(Resource, PaginationMixin, FilterMixin, SortMixin):
                 posts_query = self.get_sorted_query(
                     query=posts_query,
                     model=Post,
-                    sort_field=sort_by,
-                    sort_order=sort_order,
+                    sort_fields=sort_by,
                     sort_mappings=sort_mappings
                 )
             else:

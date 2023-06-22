@@ -1,5 +1,4 @@
 import json
-
 from flask import request, url_for
 
 
@@ -44,17 +43,27 @@ class FilterMixin:
 
 
 class SortMixin:
-    def get_sorted_query(self, query, model, sort_field, sort_order, sort_mappings={}):
-        column = getattr(model, sort_field)
+    def get_sorted_query(self, query, model, sort_fields, sort_mappings={}):
+        sort_columns = []
 
-        if sort_field in sort_mappings:
-            sort_model, field = sort_mappings.get(sort_field)
-            query = query.join(sort_model)
-            column = field
+        for index, sort_field in enumerate(sort_fields):
+            sort_order = True
 
-        if sort_order.lower() == "desc":
-            column = column.desc()
+            if sort_field[0] == "-":
+                sort_order = False
+                sort_field = sort_field[1:]
 
-        query = query.order_by(column)
+            column = getattr(model, sort_field)
+            if sort_field in sort_mappings:
+                sort_model, field = sort_mappings.get(sort_field)
+                query = query.join(sort_model)
+                column = field
+
+            if not sort_order:
+                column = column.desc()
+
+            sort_columns.append(column)
+
+        query = query.order_by(*sort_columns)
 
         return query

@@ -1,7 +1,7 @@
 import http_codes
 from sqlalchemy.orm import joinedload
 from models import Notification, User
-from flask import jsonify, request
+from flask import jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from schemas import NotificationGetSchema
 from flask_restful import Resource, reqparse, abort
@@ -9,15 +9,16 @@ from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_DELETE_
     OBJECT_VIEW_NOT_ALLOWED
 from utilities import is_authorized_error_handler
 from .mixins import PaginationMixin, FilterMixin, SortMixin
+from .technical import sort_filter_parser
 
 
 class NotificationListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     notifications_get_schema = NotificationGetSchema(many=True)
 
     def get(self):
-        filters = request.args.get("filters")
-        sort_by = request.args.get("sort_by")
-        sort_order = request.args.get("sort_order", "asc")
+        data = sort_filter_parser.parse_args()
+        filters = data.get("filters")
+        sort_by = data.get("sort_by")
 
         notifications_query = Notification.query.options(
             joinedload(Notification.receiver)
@@ -36,8 +37,7 @@ class NotificationListView(Resource, PaginationMixin, FilterMixin, SortMixin):
             notifications_query = self.get_sorted_query(
                 query=notifications_query,
                 model=Notification,
-                sort_field=sort_by,
-                sort_order=sort_order,
+                sort_fields=sort_by,
                 sort_mappings={"notification_receiver": (User, User.user_id)}
             )
         else:

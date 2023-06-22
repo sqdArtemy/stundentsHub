@@ -6,13 +6,14 @@ from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
 from datetime import datetime
 from marshmallow import ValidationError
-from flask import jsonify, make_response, request
+from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Comment, User, Notification, Post
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file
 from .mixins import PaginationMixin, FilterMixin, SortMixin
+from .technical import sort_filter_parser
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -28,9 +29,9 @@ class CommentListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        filters = request.args.get("filters")
-        sort_by = request.args.get("sort_by")
-        sort_order = request.args.get("sort_order", "asc")
+        data = sort_filter_parser.parse_args()
+        filters = data.get("filters")
+        sort_by = data.get("sort_by")
 
         comments_query = Comment.query.options(
             joinedload(Comment.author),
@@ -63,8 +64,7 @@ class CommentListView(Resource, PaginationMixin, FilterMixin, SortMixin):
                 comments_query = self.get_sorted_query(
                     query=comments_query,
                     model=Comment,
-                    sort_field=sort_by,
-                    sort_order=sort_order,
+                    sort_fields=sort_by,
                     sort_mappings=sort_mappings
                 )
             else:

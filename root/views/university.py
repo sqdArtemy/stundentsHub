@@ -4,13 +4,14 @@ from db_init import db
 from flask_restful import Resource, abort, reqparse
 from werkzeug.datastructures import FileStorage
 from marshmallow import ValidationError
-from flask import jsonify, make_response, request
+from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required
 from models import University
 from schemas import UniversityGetSchema, UniversityCreateSchema, UniversityUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler, save_file
 from .mixins import PaginationMixin, FilterMixin, SortMixin
+from .technical import sort_filter_parser
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -28,11 +29,11 @@ class UniversityListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        universities_query = University.query
+        data = sort_filter_parser.parse_args()
+        filters = data.get("filters")
+        sort_by = data.get("sort_by")
 
-        filters = request.args.get("filters")
-        sort_by = request.args.get("sort_by")
-        sort_order = request.args.get("sort_order", "asc")
+        universities_query = University.query
 
         try:
             if filters:
@@ -46,8 +47,7 @@ class UniversityListView(Resource, PaginationMixin, FilterMixin, SortMixin):
                 universities_query = self.get_sorted_query(
                     query=universities_query,
                     model=University,
-                    sort_field=sort_by,
-                    sort_order=sort_order
+                    sort_fields=sort_by,
                 )
 
         except AttributeError as e:

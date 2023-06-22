@@ -1,13 +1,14 @@
 import http_codes
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
-from flask import jsonify, make_response, request
+from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required
 from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler
 from .mixins import PaginationMixin, FilterMixin, SortMixin
+from .technical import sort_filter_parser
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("role_name", location="form", help=MSG_MISSING.format("role_name"))
@@ -21,9 +22,9 @@ class RoleListViewSet(Resource, PaginationMixin, FilterMixin, SortMixin):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        filters = request.args.get("filters")
-        sort_by = request.args.get("sort_by")
-        sort_order = request.args.get("sort_order", "asc")
+        data = sort_filter_parser.parse_args()
+        filters = data.get("filters")
+        sort_by = data.get("sort_by")
 
         roles_query = Role.query
 
@@ -39,8 +40,7 @@ class RoleListViewSet(Resource, PaginationMixin, FilterMixin, SortMixin):
                 roles_query = self.get_sorted_query(
                     query=roles_query,
                     model=Role,
-                    sort_field=sort_by,
-                    sort_order=sort_order
+                    sort_fields=sort_by,
                 )
 
         except AttributeError as e:

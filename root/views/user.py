@@ -4,7 +4,7 @@ from sqlalchemy.orm import joinedload
 from app_init import app
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
-from flask import jsonify, make_response, redirect, request
+from flask import jsonify, make_response, redirect
 from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash
 from werkzeug.datastructures import FileStorage
@@ -14,6 +14,7 @@ from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
 from .mixins import PaginationMixin, FilterMixin, SortMixin
+from .technical import sort_filter_parser
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -193,9 +194,9 @@ class UserListViewSet(Resource, PaginationMixin, FilterMixin, SortMixin):
     @is_authorized_error_handler()
     @jwt_required()
     def get(self):
-        filters = request.args.get("filters")
-        sort_by = request.args.get("sort_by")
-        sort_order = request.args.get("sort_order", "asc")
+        data = sort_filter_parser.parse_args()
+        filters = data.get("filters")
+        sort_by = data.get("sort_by")
 
         users_query = User.query.options(
             joinedload(User.role),
@@ -228,9 +229,8 @@ class UserListViewSet(Resource, PaginationMixin, FilterMixin, SortMixin):
                 users_query = self.get_sorted_query(
                     query=users_query,
                     model=User,
-                    sort_field=sort_by,
+                    sort_fields=sort_by,
                     sort_mappings=sort_mappings,
-                    sort_order=sort_order
                 )
 
             else:
