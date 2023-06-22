@@ -13,7 +13,7 @@ from db_init import db
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
-from .mixins import PaginationMixin, FilterMixin
+from .mixins import PaginationMixin, FilterMixin, SortMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -187,7 +187,7 @@ class UserFollowView(Resource):
         return jsonify(self.user_get_schema.dump(user_to_follow))
 
 
-class UserListViewSet(Resource, PaginationMixin, FilterMixin):
+class UserListViewSet(Resource, PaginationMixin, FilterMixin, SortMixin):
     users_get_schema = UserGetSchema(many=True)
 
     @is_authorized_error_handler()
@@ -200,8 +200,8 @@ class UserListViewSet(Resource, PaginationMixin, FilterMixin):
         users_query = User.query.options(
             joinedload(User.role),
             joinedload(User.faculty),
-            joinedload(User.university)
-        ).order_by(User.user_id)
+            joinedload(User.university),
+        )
 
         try:
             if filters:
@@ -219,20 +219,22 @@ class UserListViewSet(Resource, PaginationMixin, FilterMixin):
                 )
 
             if sort_by:
-                column = getattr(User, sort_by)
                 sort_mappings = {
-                    "user_role": Role.role_name,
-                    "user_faculty": Faculty.faculty_name,
-                    "user_university": University.university_name,
+                    "user_role":  (Role, Role.role_name),
+                    "user_faculty": (Faculty, Faculty.faculty_name),
+                    "user_university": (University, University.university_name)
                 }
 
-                if sort_by in sort_mappings:
-                    column = sort_mappings.get(sort_by, getattr(User, sort_by))
+                users_query = self.get_sorted_query(
+                    query=users_query,
+                    model=User,
+                    sort_field=sort_by,
+                    sort_mappings=sort_mappings,
+                    sort_order=sort_order
+                )
 
-                if sort_order.lower() == "desc":
-                    column = column.desc()
-
-                users_query = users_query.order_by(column)
+            else:
+                users_query = users_query.order_by(User.user_id)
 
         except AttributeError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

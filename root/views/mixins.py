@@ -1,4 +1,5 @@
 import json
+
 from flask import request, url_for
 
 
@@ -10,6 +11,8 @@ class PaginationMixin:
 
         items = paginated_items.items
         count = paginated_items.total
+
+        # TODO: if url was sorted, inherit sort to pages
 
         links = {}
         if paginated_items.has_prev:
@@ -36,5 +39,22 @@ class FilterMixin:
                 query = query.filter(filter_nested_field.has(filter_field == value))
             else:
                 query = query.filter(getattr(model, key) == value)
+
+        return query
+
+
+class SortMixin:
+    def get_sorted_query(self, query, model, sort_field, sort_order, sort_mappings={}):
+        column = getattr(model, sort_field)
+
+        if sort_field in sort_mappings:
+            sort_model, field = sort_mappings.get(sort_field)
+            query = query.join(sort_model)
+            column = field
+
+        if sort_order.lower() == "desc":
+            column = column.desc()
+
+        query = query.order_by(column)
 
         return query

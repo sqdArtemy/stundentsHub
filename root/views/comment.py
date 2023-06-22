@@ -12,7 +12,7 @@ from models import Comment, User, Notification, Post
 from schemas import CommentGetSchema, CommentCreateSchema, CommentUpdateSchema, UserGetSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file
-from .mixins import PaginationMixin, FilterMixin
+from .mixins import PaginationMixin, FilterMixin, SortMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -20,7 +20,7 @@ parser.add_argument("comment_text", location="form")
 parser.add_argument("comment_image", type=FileStorage, location="files")
 
 
-class CommentListView(Resource, PaginationMixin, FilterMixin):
+class CommentListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     comments_get_schema = CommentGetSchema(many=True)
     comment_get_schema = CommentGetSchema()
     comment_create_schema = CommentCreateSchema()
@@ -36,7 +36,7 @@ class CommentListView(Resource, PaginationMixin, FilterMixin):
             joinedload(Comment.author),
             joinedload(Comment.post),
             joinedload(Comment.parent_comment)
-        ).order_by(Comment.comment_id)
+        )
 
         try:
             if filters:
@@ -54,20 +54,21 @@ class CommentListView(Resource, PaginationMixin, FilterMixin):
                 )
 
             if sort_by:
-                column = getattr(User, sort_by)
                 sort_mappings = {
-                    "comment_author": User.user_id,
-                    "comment_parent": Comment.comment_id,
-                    "comment_post": Post.post_id,
+                    "comment_author": (User, User.user_id),
+                    "comment_parent": (Comment, Comment.comment_id),
+                    "comment_post": (Post, Post.post_id),
                 }
 
-                if sort_by in sort_mappings:
-                    column = sort_mappings.get(sort_by, getattr(Comment, sort_by))
-
-                    if sort_order.lower() == "desc":
-                        column = column.desc()
-
-                comments_query = comments_query.order_by(column)
+                comments_query = self.get_sorted_query(
+                    query=comments_query,
+                    model=Comment,
+                    sort_field=sort_by,
+                    sort_order=sort_order,
+                    sort_mappings=sort_mappings
+                )
+            else:
+                comments_query = comments_query.order_by(Comment.comment_id)
 
         except AttributeError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

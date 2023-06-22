@@ -8,10 +8,10 @@ from flask_restful import Resource, reqparse, abort
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_DELETE_NOT_ALLOWED, OBJECT_EDIT_NOT_ALLOWED, \
     OBJECT_VIEW_NOT_ALLOWED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin, FilterMixin
+from .mixins import PaginationMixin, FilterMixin, SortMixin
 
 
-class NotificationListView(Resource, PaginationMixin, FilterMixin):
+class NotificationListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     notifications_get_schema = NotificationGetSchema(many=True)
 
     def get(self):
@@ -21,7 +21,7 @@ class NotificationListView(Resource, PaginationMixin, FilterMixin):
 
         notifications_query = Notification.query.options(
             joinedload(Notification.receiver)
-        ).order_by(Notification.notification_id)
+        )
 
         if filters:
             filter_mappings = {"notification_receiver": (Notification.receiver, User.user_id)}
@@ -33,15 +33,15 @@ class NotificationListView(Resource, PaginationMixin, FilterMixin):
             )
 
         if sort_by:
-            column = getattr(User, sort_by)
-
-            if sort_by == "notification_receiver":
-                column = User.user_name
-
-                if sort_order.lower() == "desc":
-                    column = column.desc()
-
-            notifications_query = notifications_query.order_by(column)
+            notifications_query = self.get_sorted_query(
+                query=notifications_query,
+                model=Notification,
+                sort_field=sort_by,
+                sort_order=sort_order,
+                sort_mappings={"notification_receiver": (User, User.user_id)}
+            )
+        else:
+            notifications_query = notifications_query.order_by(Notification.notification_id)
 
         response = self.get_paginated_response(
             query=notifications_query,

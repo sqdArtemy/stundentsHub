@@ -13,7 +13,7 @@ from db_init import db
 from schemas import PostGetSchema, PostCreateSchema, PostUpdateSchema, FileCreateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED, OBJECT_DELETE_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
-from .mixins import PaginationMixin, FilterMixin
+from .mixins import PaginationMixin, FilterMixin, SortMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -22,7 +22,7 @@ parser.add_argument("post_text", location="form")
 parser.add_argument("post_image", type=FileStorage, location="files")
 
 
-class PostListView(Resource, PaginationMixin, FilterMixin):
+class PostListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     posts_get_schema = PostGetSchema(many=True)
     post_get_schema = PostGetSchema()
     post_create_schema = PostCreateSchema()
@@ -34,7 +34,7 @@ class PostListView(Resource, PaginationMixin, FilterMixin):
         sort_by = request.args.get("sort_by")
         sort_order = request.args.get("sort_order", "asc")
 
-        posts_query = Post.query.options(joinedload(Post.author)).order_by(Post.post_id)
+        posts_query = Post.query.options(joinedload(Post.author))
 
         try:
             if filters:
@@ -47,15 +47,16 @@ class PostListView(Resource, PaginationMixin, FilterMixin):
                 )
 
             if sort_by:
-                column = getattr(User, sort_by)
-
-                if sort_by == "post_author":
-                    column = User.user_id
-
-                    if sort_order.lower() == "desc":
-                        column = column.desc()
-
-                posts_query = posts_query.order_by(column)
+                sort_mappings = {"post_author": (User, User.user_id)}
+                posts_query = self.get_sorted_query(
+                    query=posts_query,
+                    model=Post,
+                    sort_field=sort_by,
+                    sort_order=sort_order,
+                    sort_mappings=sort_mappings
+                )
+            else:
+                posts_query = posts_query.order_by(Post.post_id)
 
         except AttributeError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

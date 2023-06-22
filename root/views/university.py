@@ -1,4 +1,3 @@
-import json
 import http_codes
 import asyncio
 from db_init import db
@@ -11,7 +10,7 @@ from models import University
 from schemas import UniversityGetSchema, UniversityCreateSchema, UniversityUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler, save_file
-from .mixins import PaginationMixin, FilterMixin
+from .mixins import PaginationMixin, FilterMixin, SortMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -21,7 +20,7 @@ parser.add_argument("university_phone", location="form")
 parser.add_argument("university_image", type=FileStorage, location="files")
 
 
-class UniversityListView(Resource, PaginationMixin, FilterMixin):
+class UniversityListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     universities_get_schema = UniversityGetSchema(many=True)
     university_get_schema = UniversityGetSchema()
     university_create_schema = UniversityCreateSchema()
@@ -44,12 +43,12 @@ class UniversityListView(Resource, PaginationMixin, FilterMixin):
                 )
 
             if sort_by:
-                column = getattr(University, sort_by)
-
-                if sort_order.lower() == "desc":
-                    column = column.desc()
-
-                universities_query = universities_query.order_by(column)
+                universities_query = self.get_sorted_query(
+                    query=universities_query,
+                    model=University,
+                    sort_field=sort_by,
+                    sort_order=sort_order
+                )
 
         except AttributeError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

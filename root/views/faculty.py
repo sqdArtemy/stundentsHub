@@ -8,7 +8,7 @@ from models import Faculty, University
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin, FilterMixin
+from .mixins import PaginationMixin, FilterMixin, SortMixin
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -16,7 +16,7 @@ parser.add_argument("faculty_name", location="form")
 parser.add_argument("faculty_university", type=int, location="form")
 
 
-class FacultyListView(Resource, PaginationMixin, FilterMixin):
+class FacultyListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     faculties_get_schema = FacultyGetSchema(many=True)
     faculty_get_schema = FacultyGetSchema()
     faculty_create_schema = FacultyCreateSchema()
@@ -28,7 +28,7 @@ class FacultyListView(Resource, PaginationMixin, FilterMixin):
         sort_by = request.args.get("sort_by")
         sort_order = request.args.get("sort_order", "asc")
 
-        faculties_query = Faculty.query.options(joinedload(Faculty.university)).order_by(Faculty.faculty_id)
+        faculties_query = Faculty.query.options(joinedload(Faculty.university))
 
         try:
             if filters:
@@ -41,15 +41,15 @@ class FacultyListView(Resource, PaginationMixin, FilterMixin):
                 )
 
                 if sort_by:
-                    column = getattr(University, sort_by)
-
-                    if sort_by == "faculty_university":
-                        column = University.university_name
-
-                    if sort_order.lower() == "desc":
-                        column = column.desc()
-
-                    faculties_query = faculties_query.order_by(column)
+                    faculties_query = self.get_sorted_query(
+                        query=faculties_query,
+                        model=Faculty,
+                        sort_field=sort_by,
+                        sort_order=sort_order,
+                        sort_mappings={"faculty_university": (University, University.university_name)}
+                    )
+                else:
+                    faculties_query = faculties_query.order_by(Faculty.faculty_id)
 
         except AttributeError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

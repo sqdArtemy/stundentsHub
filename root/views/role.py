@@ -7,13 +7,13 @@ from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin, FilterMixin
+from .mixins import PaginationMixin, FilterMixin, SortMixin
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("role_name", location="form", help=MSG_MISSING.format("role_name"))
 
 
-class RoleListViewSet(Resource, PaginationMixin, FilterMixin):
+class RoleListViewSet(Resource, PaginationMixin, FilterMixin, SortMixin):
     roles_get_schema = RoleGetSchema(many=True)
     role_get_schema = RoleGetSchema()
     role_create_schema = RoleCreateSchema()
@@ -36,12 +36,12 @@ class RoleListViewSet(Resource, PaginationMixin, FilterMixin):
                 )
 
             if sort_by:
-                column = getattr(Role, sort_by)
-
-                if sort_order.lower() == "desc":
-                    column = column.desc()
-
-                roles_query = roles_query.order_by(column)
+                roles_query = self.get_sorted_query(
+                    query=roles_query,
+                    model=Role,
+                    sort_field=sort_by,
+                    sort_order=sort_order
+                )
 
         except AttributeError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
