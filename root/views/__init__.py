@@ -1,5 +1,5 @@
 from .user import UserRegisterView, UserListViewSet, UserDetailedViewSet, UserLoginView, UserChangePassword,\
-    UserMeView, UserFollowView
+    UserMeView, UserFollowView, UserLogOutView
 from .role import RoleDetailedViewSet, RoleListViewSet
 from .university import UniversityListView, UniversityDetailedView
 from .faculty import FacultyListView, FacultyDetailedView

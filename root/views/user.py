@@ -4,12 +4,12 @@ from sqlalchemy.orm import joinedload
 from app_init import app
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
-from flask import jsonify, make_response, redirect
-from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
+from flask import jsonify, make_response, redirect, request
+from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity, get_jti
 from werkzeug.security import check_password_hash
 from werkzeug.datastructures import FileStorage
 from models import User, Notification, Faculty, Role, University
-from db_init import db
+from db_init import db, redis_store
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
@@ -87,6 +87,15 @@ class UserLoginView(Resource):
                     }
                 }, http_codes.HTTP_CREATED_201
         return {"error": "Wrong credentials, try again."}, http_codes.HTTP_BAD_REQUEST_400
+
+
+class UserLogOutView(Resource):
+    @is_authorized_error_handler()
+    @jwt_required()
+    def get(self):
+        jti = get_jti(encoded_token=request.headers.get('Authorization').split()[1])
+        redis_store.set(jti, "true")
+        return {"message": "Successfully logged out"}
 
 
 class UserChangePassword(Resource):

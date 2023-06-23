@@ -35,6 +35,10 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f"postgresql://{POSTGRES_USER}:{POSTGRES_PW}@{POSTGRES_URL}/{POSTGRES_DB}"
     DATE_FORMAT = "%Y-%m-%d"
     DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+    # Redis
+    REDIS_HOST = get_env_variable("REDIS_HOST")
+    REDIS_PORT = get_env_variable("REDIS_PORT")
+    REDIS_DB = get_env_variable("REDIS_DB")
 
 
 class ProductionConfig(Config):

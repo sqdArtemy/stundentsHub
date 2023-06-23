@@ -1,12 +1,15 @@
+import http_codes
 from flask_cli import FlaskGroup
-from flask_restful import Api
+from flask_restful import Api, request, abort
 from app_init import app
-from flask_jwt_extended import JWTManager
+from db_init import redis_store
+from flask_jwt_extended import JWTManager, get_jti
 from views import (
     UserRegisterView, UserDetailedViewSet, UserListViewSet, RoleDetailedViewSet, RoleListViewSet,
     UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
     CommentDetailedView, CommentListView, UserLoginView, RefreshJWTView, UserChangePassword, PostRateView, UserMeView,
-    UserFollowView, PostAddFile, PostDeleteFile, PostBulkEditFiles, NotificationListView, NotificationDetailedView
+    UserFollowView, PostAddFile, PostDeleteFile, PostBulkEditFiles, NotificationListView, NotificationDetailedView,
+    UserLogOutView
 )
 
 JWTManager(app)
@@ -23,6 +26,7 @@ api.add_resource(UserListViewSet, "/users")
 api.add_resource(UserDetailedViewSet, "/user/<int:user_id>")
 api.add_resource(UserRegisterView, "/user/register")
 api.add_resource(UserLoginView, "/user/login")
+api.add_resource(UserLogOutView, "/user/logout")
 api.add_resource(UserChangePassword, "/user/change_password")
 api.add_resource(UserMeView, "/user/me")
 api.add_resource(UserFollowView, "/user/<int:user_id>/follow")
@@ -47,6 +51,17 @@ api.add_resource(NotificationListView, "/notifications")
 api.add_resource(NotificationDetailedView, "/notification/<int:notification_id>")
 # Technical urls
 api.add_resource(RefreshJWTView, "/token/refresh")
+
+
+@app.before_request
+def check_blacklisted_tokens():
+    jwt_header = request.headers.get("Authorization", None)
+    if jwt_header:
+        token = jwt_header.split()[1]
+        jti = get_jti(encoded_token=token)
+        if redis_store.get(jti):
+            abort(http_codes.HTTP_UNAUTHORIZED_401, error_message="Your JWT token is revoked.")
+
 
 if __name__ == '__main__':
     cli()
