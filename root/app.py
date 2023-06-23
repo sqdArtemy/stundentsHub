@@ -1,9 +1,11 @@
-import http_codes
+import os
+
+from flask import send_from_directory
 from flask_cli import FlaskGroup
-from flask_restful import Api, request, abort
+from flask_restful import Api
 from app_init import app
-from db_init import redis_store
-from flask_jwt_extended import JWTManager, get_jti
+from flask_jwt_extended import JWTManager
+from middlewares import check_blacklisted_tokens
 from views import (
     UserRegisterView, UserDetailedViewSet, UserListViewSet, RoleDetailedViewSet, RoleListViewSet,
     UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
@@ -53,14 +55,17 @@ api.add_resource(NotificationDetailedView, "/notification/<int:notification_id>"
 api.add_resource(RefreshJWTView, "/token/refresh")
 
 
+# Media path
+@app.route('/media/uploads/<path:filename>')
+def serve_media(filename):
+    media_folder = app.config["UPLOAD_FOLDER"]
+    return send_from_directory(media_folder, filename)
+
+
+# Middlewares
 @app.before_request
-def check_blacklisted_tokens():
-    jwt_header = request.headers.get("Authorization", None)
-    if jwt_header:
-        token = jwt_header.split()[1]
-        jti = get_jti(encoded_token=token)
-        if redis_store.get(jti):
-            abort(http_codes.HTTP_UNAUTHORIZED_401, error_message="Your JWT token is revoked.")
+def check_blacklisted_tokens_middleware():
+    check_blacklisted_tokens()
 
 
 if __name__ == '__main__':

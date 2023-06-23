@@ -24,7 +24,7 @@ class Config:
     JWT_BLACKLIST_TOKEN_CHECKS = ['access', 'refresh']
     JSON_SORT_KEYS = False
     ROOT_FOLDER = os.path.abspath(os.path.dirname(__name__))
-    UPLOAD_FOLDER = os.path.join(ROOT_FOLDER, "static\\uploads")
+    UPLOAD_FOLDER = os.path.join(ROOT_FOLDER, "media/uploads")
     #  Postgres config
     POSTGRES_URL = get_env_variable("POSTGRES_URL")
     POSTGRES_USER = get_env_variable("POSTGRES_USER")

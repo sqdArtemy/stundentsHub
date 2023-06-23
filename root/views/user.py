@@ -56,9 +56,6 @@ class UserRegisterView(Resource):
 
             await asyncio.gather(*async_tasks)
 
-            from pprint import pprint
-            pprint(self.user_get_schema.dump(user))
-
             return make_response(jsonify(self.user_get_schema.dump(user)), http_codes.HTTP_CREATED_201)
         except ValidationError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))

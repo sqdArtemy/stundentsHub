@@ -16,7 +16,7 @@ class FileCreateSchema(ma.SQLAlchemyAutoSchema):
         file = data.get("file_raw")
         file_name = secure_filename(file.filename)
         unique_name = str(uuid.uuid4()) + os.path.splitext(file_name)[1]
-        file_url = url_for("static", filename=f"uploads/{unique_name}")
+        file_url = url_for("serve_media", filename=f"uploads/{unique_name}")
 
         return File(file_name, file_url)
 

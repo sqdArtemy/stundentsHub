@@ -27,5 +27,4 @@ class File(db.Model, ModelMixinQuerySimplifier):
 @event.listens_for(File, "before_delete")
 def delete_file_upon_model_deletion(mapper, connection, target):
     loop = asyncio.get_event_loop()
-    print(loop)
     loop.create_task(delete_file(target.file_url[1:]))
