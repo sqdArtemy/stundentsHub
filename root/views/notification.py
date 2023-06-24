@@ -15,6 +15,7 @@ from .technical import sort_filter_parser
 class NotificationListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     notifications_get_schema = NotificationGetSchema(many=True)
 
+    @jwt_required()
     def get(self):
         data = sort_filter_parser.parse_args()
         filters = data.get("filters")
