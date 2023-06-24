@@ -384,5 +384,3 @@ class PostBulkEditFiles(Resource):
                 return jsonify(self.post_get_schema.dump(post))
         except ValidationError as e:
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
-
-# TODO: Add urls for post comments into json data

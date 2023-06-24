@@ -8,6 +8,7 @@ from jwt.exceptions import ExpiredSignatureError
 from flask import current_app
 from flask_restful import abort
 from marshmallow import ValidationError
+from exceptions import JWTRevokedError
 
 
 async def save_file(file, file_url):
@@ -76,15 +77,20 @@ def is_datetime_valid(datetime: str):
 
 # Changes the warning message if user is not authorized
 def is_authorized_error_handler():
+    error_mappings = {
+        NoAuthorizationError: http_codes.HTTP_UNAUTHORIZED_401,
+        ExpiredSignatureError: http_codes.HTTP_NOT_ACCEPTABLE_406,
+        JWTRevokedError: http_codes.HTTP_UNAUTHORIZED_401
+    }
+
     def decorate(function):
         def wrapper(*args, **kwargs):
             try:
                 return current_app.ensure_sync(function)(*args, **kwargs)
-            except (NoAuthorizationError, ExpiredSignatureError) as e:
-                if type(e) is NoAuthorizationError:
-                    abort(http_codes.HTTP_UNAUTHORIZED_401, error_message="User is not authorized.")
-                elif type(e) is ExpiredSignatureError:
-                    abort(http_codes.HTTP_NOT_ACCEPTABLE_406, error_message=str(e))
+            except (NoAuthorizationError, ExpiredSignatureError, JWTRevokedError) as e:
+                if type(e) in error_mappings.keys():
+                    status_code = error_mappings[type(e)]
+                    abort(status_code, error_message=str(e))
 
         return wrapper
 

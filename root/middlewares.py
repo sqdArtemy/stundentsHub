@@ -1,9 +1,8 @@
-import http_codes
 from db_init import redis_store
 from flask import request
-from flask_jwt_extended import get_jti
-from flask_restful import abort
+from flask_jwt_extended import get_jti, exceptions
 from utilities import is_authorized_error_handler
+from exceptions import JWTRevokedError
 
 
 @is_authorized_error_handler()
@@ -13,4 +12,4 @@ def check_blacklisted_tokens():
         token = jwt_header.split()[1]
         jti = get_jti(encoded_token=token)
         if redis_store.get(jti):
-            abort(http_codes.HTTP_UNAUTHORIZED_401, error_message="Your JWT token is revoked.")
+            raise JWTRevokedError
