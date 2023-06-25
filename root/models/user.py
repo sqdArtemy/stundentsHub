@@ -32,6 +32,13 @@ class User(db.Model, ModelMixinQuerySimplifier):
     user_posts = db.relationship("Post", backref="author", cascade="all, delete", lazy=True)
     user_comments = db.relationship("Comment", backref="author", cascade="all, delete", lazy=True)
     user_notifications = db.relationship("Notification", backref="receiver", cascade="all, delete", lazy=True)
+    user_sent_messages = db.relationship("Message", backref="sender", foreign_keys="Message.message_sender", lazy=True)
+    user_received_messages = db.relationship(
+        "Message",
+        backref="receiver",
+        foreign_keys="Message.message_receiver",
+        lazy=True
+    )
     user_followers = db.relationship(
         "User",
         secondary=user_follower,

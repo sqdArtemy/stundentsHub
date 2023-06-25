@@ -1,7 +1,6 @@
 import json
 from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
-
-from flask import request, url_for
+from flask import request
 
 
 class PaginationMixin:
@@ -21,11 +20,11 @@ class PaginationMixin:
         if paginated_items.has_prev:
             query_params["page"] = paginated_items.prev_num
             prev_url = urlunparse(url_parts[:4] + [urlencode(query_params, doseq=True)] + url_parts[5:])
-            links["prev"] = prev_url.replace('%5B', '[').replace('%5D', ']')
+            links["prev"] = prev_url
         if paginated_items.has_next:
             query_params["page"] = paginated_items.next_num
             next_url = urlunparse(url_parts[:4] + [urlencode(query_params, doseq=True)] + url_parts[5:])
-            links["next"] = next_url.replace('%5B', '[').replace('%5D', ']')
+            links["next"] = next_url
 
         response = {
             model_plural_name: items_schema.dump(items),

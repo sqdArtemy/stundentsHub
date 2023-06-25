@@ -4,6 +4,8 @@ from .mixins import ModelMixinQuerySimplifier
 
 
 class Notification(db.Model, ModelMixinQuerySimplifier):
+    __tablename__ = "notifications"
+
     notification_id = db.Column(db.Integer, primary_key=True)
     notification_text = db.Column(db.String(100))
     notification_receiver = db.Column(db.Integer, db.ForeignKey("users.user_id", ondelete="CASCADE"))
