@@ -1,6 +1,3 @@
-import os
-
-from flask import send_from_directory
 from flask_cli import FlaskGroup
 from flask_restful import Api
 from app_init import app
@@ -11,7 +8,7 @@ from views import (
     UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
     CommentDetailedView, CommentListView, UserLoginView, RefreshJWTView, UserChangePassword, PostRateView, UserMeView,
     UserFollowView, PostAddFile, PostDeleteFile, PostBulkEditFiles, NotificationListView, NotificationDetailedView,
-    UserLogOutView
+    UserLogOutView, MessageListView, MessageDetailedView
 )
 
 JWTManager(app)
@@ -51,15 +48,11 @@ api.add_resource(CommentDetailedView, "/comment/<int:comment_id>")
 # Notification urls
 api.add_resource(NotificationListView, "/notifications")
 api.add_resource(NotificationDetailedView, "/notification/<int:notification_id>")
+# Chat urls
+api.add_resource(MessageListView, "/chat/<int:receiver_id>")
+api.add_resource(MessageDetailedView, "/chat/<int:receiver_id>/message/<int:message_id>")
 # Technical urls
 api.add_resource(RefreshJWTView, "/token/refresh")
-
-
-# Media path
-@app.route('/media/uploads/<path:filename>')
-def serve_media(filename):
-    media_folder = app.config["UPLOAD_FOLDER"]
-    return send_from_directory(media_folder, filename)
 
 
 # Middlewares
