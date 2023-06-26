@@ -146,18 +146,17 @@ class UserFollowView(Resource):
 
     @staticmethod
     def follow_user(follower: User, user_to_follow: User):
-        with db.session.begin():
-            if user_to_follow in follower.user_following or follower in user_to_follow.user_followers:
-                abort(http_codes.HTTP_BAD_REQUEST_400, error_message="You are already following this user!")
+        if user_to_follow in follower.user_following or follower in user_to_follow.user_followers:
+            abort(http_codes.HTTP_BAD_REQUEST_400, error_message="You are already following this user!")
 
-            follower.user_following.append(user_to_follow)
+        follower.user_following.append(user_to_follow)
 
-            notification = Notification(
-                notification_text=f"User {follower} now follows you.",
-                notification_receiver=user_to_follow,
-                notification_sender_url=f"/user/{follower.user_id}"
-            )
-            db.session.add(notification)
+        notification = Notification(
+            notification_text=f"User {follower} now follows you.",
+            notification_receiver=user_to_follow,
+            notification_sender_url=f"/user/{follower.user_id}"
+        )
+        db.session.add(notification)
 
         return user_to_follow
 
@@ -167,29 +166,29 @@ class UserFollowView(Resource):
             abort(http_codes.HTTP_BAD_REQUEST_400, error_message="You are not following this user!")
 
         unfollower.user_following.remove(user_to_unfollow)
-        unfollower.save_changes()
 
         return user_to_unfollow
 
     @is_authorized_error_handler()
     @jwt_required()
     def put(self, user_id: int):
-        follow_parser = reqparse.RequestParser()
-        follow_parser.add_argument("action", required=True, choices=["follow", "unfollow"], location="form")
-        data = follow_parser.parse_args()
+        with db.session.begin():
+            follow_parser = reqparse.RequestParser()
+            follow_parser.add_argument("action", required=True, choices=["follow", "unfollow"], location="form")
+            data = follow_parser.parse_args()
 
-        user_to_follow = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
-        follower = User.query.get(get_jwt_identity())
+            user_to_follow = User.query.get_or_404(user_id, description=OBJECT_DOES_NOT_EXIST.format("User", user_id))
+            follower = User.query.get(get_jwt_identity())
 
-        if user_to_follow is follower:
-            abort(http_codes.HTTP_BAD_REQUEST_400, error_message="You can not follow yourself.")
+            if user_to_follow is follower:
+                abort(http_codes.HTTP_BAD_REQUEST_400, error_message="You can not follow yourself.")
 
-        if data["action"] == "follow":
-            user_to_follow = self.follow_user(follower, user_to_follow)
-        elif data["action"] == "unfollow":
-            user_to_follow = self.unfollow_user(follower, user_to_follow)
-        else:
-            abort(http_codes.HTTP_BAD_REQUEST_400, error_message="Incorrect action.")
+            if data["action"] == "follow":
+                user_to_follow = self.follow_user(follower, user_to_follow)
+            elif data["action"] == "unfollow":
+                user_to_follow = self.unfollow_user(follower, user_to_follow)
+            else:
+                abort(http_codes.HTTP_BAD_REQUEST_400, error_message="Incorrect action.")
 
         return jsonify(self.user_get_schema.dump(user_to_follow))
 

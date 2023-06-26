@@ -7,9 +7,6 @@ from utilities import is_name_valid, is_email_valid, is_phone_valid
 
 
 class UniversitySchemaMixin:
-    university_name = fields.Str(required=False, validate=is_name_valid)
-    university_email = fields.Email(required=False, validate=is_email_valid)
-    university_phone = fields.Str(required=False, validate=is_phone_valid)
     university_image = fields.Nested(FileCreateSchema(), allow_none=True)
 
     @pre_load
@@ -33,13 +30,18 @@ class UniversityGetSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         ordered = True
         model = University
-        fields = ("university_id", "university_name", "university_image", "university_email", "university_phone", "university_faculties")
+        fields = ("university_id", "university_name", "university_image", "university_email", "university_phone",
+                  "university_faculties")
         include_relationships = True
         load_instance = True
         unknown = EXCLUDE
 
 
 class UniversityUpdateSchema(ma.SQLAlchemyAutoSchema, UniversitySchemaMixin):
+    university_name = fields.Str(required=False, validate=is_name_valid)
+    university_email = fields.Email(required=False, validate=is_email_valid)
+    university_phone = fields.Str(required=False, validate=is_phone_valid)
+
     class Meta:
         ordered = True
         model = University

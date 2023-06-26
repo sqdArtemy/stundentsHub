@@ -11,16 +11,6 @@ from db_init import db
 
 
 class UserSchemaMixin:
-    user_name = fields.Str(required=False, validate=is_name_valid)
-    user_surname = fields.Str(required=False, validate=is_name_valid)
-    user_email = fields.Email(required=False, validate=is_email_valid)
-    user_password = fields.Str(required=False, validate=is_password_valid)
-    user_card_id = fields.Str(required=False)
-    user_birthday = fields.Date(required=False, format="%Y-%m-%d")
-    user_role = fields.Integer(required=False)
-    user_faculty = fields.Integer(required=False)
-    user_university = fields.Integer(required=False)
-    user_enrolment_year = fields.Date(required=False, format="%Y-%m-%d")
     user_tg_link = fields.Str(required=False, allow_none=True)
     user_phone = fields.Str(required=False, allow_none=True, validate=is_phone_valid)
     user_image = fields.Nested(FileCreateSchema(), allow_none=True)
@@ -109,6 +99,17 @@ class UserCreateSchema(ma.SQLAlchemyAutoSchema, UserSchemaMixin):
 
 
 class UserUpdateSchema(ma.SQLAlchemyAutoSchema, UserSchemaMixin):
+    user_name = fields.Str(required=False, validate=is_name_valid)
+    user_surname = fields.Str(required=False, validate=is_name_valid)
+    user_email = fields.Email(required=False, validate=is_email_valid)
+    user_password = fields.Str(required=False, validate=is_password_valid)
+    user_card_id = fields.Str(required=False)
+    user_birthday = fields.Date(required=False, format="%Y-%m-%d")
+    user_role = fields.Integer(required=False)
+    user_faculty = fields.Integer(required=False)
+    user_university = fields.Integer(required=False)
+    user_enrolment_year = fields.Date(required=False, format="%Y-%m-%d")
+
     class Meta:
         model = User
         fields = ("user_name", "user_surname", "user_email", "user_password", "user_card_id",
