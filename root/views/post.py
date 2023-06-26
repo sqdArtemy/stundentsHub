@@ -246,7 +246,7 @@ class PostRateView(Resource):
         action = "liked" if data.get("likes") else "disliked" if data.get("dislikes") else ""
         notification = Notification(
             notification_text=f"Your post {post} have been {action} by {user}.",
-            notification_receiver=post.author.user_id,
+            notification_receiver=post.author,
             notification_sender_url=f"/user/{user.user_id}"
         )
         notification.create()

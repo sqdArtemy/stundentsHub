@@ -10,13 +10,7 @@ from text_templates import OBJECT_DOES_NOT_EXIST
 
 
 class PostSchemaMixin:
-    post_heading = fields.Str(required=False, validate=validate.Length(min=10, max=100))
-    post_text = fields.Str(required=False, validate=validate.Length(min=10, max=2500))
-    post_created_at = fields.DateTime(required=False)
-    post_modified_at = fields.DateTime(required=False)
-    post_author = fields.Integer(required=False)
     post_image = fields.Nested(FileCreateSchema(), allow_none=True)
-    post_files = fields.List(fields.Nested(FileCreateSchema()), allow_none=True)
 
     @pre_load
     def serialize_data(self, data, **kwargs):
@@ -76,6 +70,7 @@ class PostCreateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
     post_text = fields.Str(required=True, validate=validate.Length(min=10, max=2500))
     post_created_at = fields.DateTime(required=True)
     post_author = fields.Integer(required=True)
+    post_files = fields.List(fields.Nested(FileCreateSchema()), allow_none=True)
 
     class Meta:
         model = Post
@@ -87,10 +82,13 @@ class PostCreateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
 
 
 class PostUpdateSchema(ma.SQLAlchemyAutoSchema, PostSchemaMixin):
+    post_heading = fields.Str(required=False, validate=validate.Length(min=10, max=100))
+    post_text = fields.Str(required=False, validate=validate.Length(min=10, max=2500))
+
     class Meta:
         model = Post
         ordered = True
-        fields = ("post_heading", "post_image", "post_text", "post_modified_at", "post_files")
+        fields = ("post_heading", "post_image", "post_text", "post_modified_at")
         include_relationships = True
         load_instance = False
         unknown = EXCLUDE
