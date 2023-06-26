@@ -19,6 +19,7 @@ class RefreshJWTView(Resource):
 
 
 @app.route('/media/uploads/<path:filename>')
+@jwt_required()
 def serve_media(filename):
     media_folder = app.config["UPLOAD_FOLDER"]
     return send_from_directory(media_folder, filename)

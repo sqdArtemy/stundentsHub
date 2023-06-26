@@ -13,6 +13,7 @@ from exceptions import JWTRevokedError
 
 async def save_file(file, file_url):
     save_path = os.path.join(app.config["ROOT_FOLDER"], file_url)
+    print(save_path)
     async with aiofiles.open(save_path, "wb") as f:
         await f.write(file.read())
 

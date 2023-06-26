@@ -9,11 +9,8 @@ from db_init import db
 
 
 class CommentSchemaMixin:
-    comment_text = fields.Str(required=False, validate=validate.Length(min=1, max=250))
-    comment_created_at = fields.DateTime(required=False)
-    comment_modified_at = fields.DateTime(required=False, allow_none=True)
     comment_author = fields.Integer(required=True)
-    comment_post = fields.Integer(required=False)
+    comment_post = fields.Integer(required=True)
     comment_image = fields.Nested(FileCreateSchema(), allow_none=True)
 
     @pre_load
@@ -48,7 +45,7 @@ class CommentGetSchema(ma.SQLAlchemyAutoSchema):
     author = fields.Nested(UserGetSchema(only=("user_id", "user_name", "user_surname")), data_key="comment_author")
     parent_comment = fields.Nested("self", data_key="comment_parent",
                                    exclude=("parent_comment", "comment_post"))
-    comment_image = fields.Nested(FileGetSchema())
+    comment_image = fields.Nested(FileGetSchema(), allow_none=True)
 
     class Meta:
         model = Comment
@@ -65,9 +62,9 @@ class CommentGetSchema(ma.SQLAlchemyAutoSchema):
 class CommentCreateSchema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
     comment_text = fields.Str(required=True, validate=validate.Length(min=1, max=250))
     comment_created_at = fields.DateTime(required=True)
-    comment_post = fields.Integer(required=False)
     author = fields.Nested(UserGetSchema(only=("user_id",)), data_key="comment_author")
-    parent_comment = fields.Nested(CommentGetSchema(exclude=("parent_comment", "comment_post")), data_key="comment_parent", allow_none=True)
+    parent_comment = fields.Nested(CommentGetSchema(exclude=("parent_comment", "comment_post")),
+                                   data_key="comment_parent", allow_none=True)
 
     class Meta:
         model = Comment
@@ -82,6 +79,8 @@ class CommentCreateSchema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
 
 
 class CommentUpdateSchema(ma.SQLAlchemyAutoSchema, CommentSchemaMixin):
+    comment_text = fields.Str(required=False, validate=validate.Length(min=1, max=250))
+
     class Meta:
         model = Comment
         ordered = True

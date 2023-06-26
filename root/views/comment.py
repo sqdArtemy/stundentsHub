@@ -18,7 +18,7 @@ from .technical import sort_filter_parser
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("comment_text", location="form")
-parser.add_argument("comment_image", type=FileStorage, location="files")
+parser.add_argument("comment_image", type=FileStorage, location="files", nullable=True)
 
 
 class CommentListView(Resource, PaginationMixin, FilterMixin, SortMixin):
@@ -85,22 +85,22 @@ class CommentListView(Resource, PaginationMixin, FilterMixin, SortMixin):
     @is_authorized_error_handler()
     @jwt_required()
     async def post(self):
-        parser_post = parser.copy()
-        parser_post.add_argument("comment_post", type=int, location="form")
-        parser_post.add_argument("comment_parent", type=int, location="form")
-        data = parser_post.parse_args()
-
-        comment_author = User.query.get(get_jwt_identity())
-        data["comment_author"] = UserGetSchema(only=("user_id",)).dump(comment_author)
-        data["comment_created_at"] = datetime.utcnow().isoformat()
-        image_file = data["comment_image"]
-
         try:
             with db.session.begin():
+                parser_post = parser.copy()
+                parser_post.add_argument("comment_post", type=int, location="form")
+                parser_post.add_argument("comment_parent", type=int, location="form")
+                data = parser_post.parse_args()
+
+                comment_author = User.query.get(get_jwt_identity())
+                data["comment_author"] = UserGetSchema(only=("user_id",)).dump(comment_author)
+                data["comment_created_at"] = datetime.utcnow().isoformat()
+                image_file = data["comment_image"]
+
                 comment = self.comment_create_schema.load(data)
                 async_tasks = []
 
-                if comment.comment_parent and comment.comment_post != comment.parent_comment.comment_post:
+                if comment.parent_comment and comment.comment_post != comment.parent_comment.comment_post:
                     abort(http_codes.HTTP_FORBIDDEN_403, error_message="Parent comment has different post.")
 
                 db.session.add(comment)
@@ -112,7 +112,7 @@ class CommentListView(Resource, PaginationMixin, FilterMixin, SortMixin):
 
                 await asyncio.gather(*async_tasks)
 
-                if comment_author is not comment.post.author:
+                if comment_author is not Post.query.get(comment.comment_post).author:
                     notification_post_commented = Notification(
                         notification_text=f"Your post {comment.post} have been commented.",
                         notification_receiver=comment.post.author,

@@ -16,7 +16,7 @@ class Notification(db.Model, ModelMixinQuerySimplifier):
     def __init__(self, notification_text, notification_receiver, notification_is_seen=False,
                  notification_sender_url=None):
         self.notification_text = notification_text
-        self.notification_receiver = notification_receiver
+        self.notification_receiver = notification_receiver.user_id
         self.notification_is_seen = notification_is_seen
         self.notification_sender_url = notification_sender_url
 
