@@ -1,7 +1,7 @@
 from db_init import db
 from datetime import datetime
-from .file import File
-from .mixins import ModelMixinQuerySimplifier
+from models.file import File
+from models.mixins import ModelMixinQuerySimplifier
 
 
 user_likes_post = db.Table(

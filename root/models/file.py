@@ -3,7 +3,7 @@ import os
 from db_init import db
 from utilities import delete_file
 from sqlalchemy import event
-from .mixins import ModelMixinQuerySimplifier
+from models.mixins import ModelMixinQuerySimplifier
 
 
 class File(db.Model, ModelMixinQuerySimplifier):

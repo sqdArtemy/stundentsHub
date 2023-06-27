@@ -1,11 +1,11 @@
-from marshmallow import fields, validate, post_load, validates, ValidationError, EXCLUDE, pre_load
+from marshmallow import fields, post_load, validates, ValidationError, EXCLUDE, pre_load
 from werkzeug.security import generate_password_hash
 from models import User, Role, Faculty, University
 from app_init import ma
-from .file import FileCreateSchema, FileGetSchema
-from .university import UniversityGetSchema
-from .role import RoleGetSchema
-from .faculty import FacultyGetSchema
+from schemas.file import FileCreateSchema, FileGetSchema
+from schemas.university import UniversityGetSchema
+from schemas.role import RoleGetSchema
+from schemas.faculty import FacultyGetSchema
 from utilities import is_email_valid, instance_exists_by_id, is_phone_valid, is_name_valid, is_password_valid
 from db_init import db
 

@@ -1,5 +1,5 @@
 from models import Notification
-from .user import UserGetSchema
+from schemas.user import UserGetSchema
 from app_init import ma
 from marshmallow import fields
 from db_init import db

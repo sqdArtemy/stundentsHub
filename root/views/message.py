@@ -10,8 +10,8 @@ from models import Message, User
 from schemas import MessageGetSchema, MessageUpdateSchema, MessageCreateSchema, UserGetSchema
 from utilities import is_authorized_error_handler
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETE_NOT_ALLOWED, OBJECT_DELETED
-from .mixins import SortMixin, PaginationMixin, FilterMixin
-from .technical import sort_filter_parser
+from views.mixins import SortMixin, PaginationMixin, FilterMixin
+from views.technical import sort_filter_parser
 
 parser = reqparse.RequestParser()
 parser.add_argument("message_text", required=True, location="form")

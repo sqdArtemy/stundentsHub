@@ -4,7 +4,7 @@ from models import Message, User
 from marshmallow import fields, validates, validate, ValidationError, EXCLUDE
 from utilities import instance_exists_by_id
 from text_templates import OBJECT_DOES_NOT_EXIST
-from .user import UserGetSchema
+from schemas.user import UserGetSchema
 
 
 class MessageSchemaMixin:

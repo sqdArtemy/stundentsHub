@@ -8,8 +8,8 @@ from flask_restful import Resource, reqparse, abort
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_DELETE_NOT_ALLOWED, OBJECT_EDIT_NOT_ALLOWED, \
     OBJECT_VIEW_NOT_ALLOWED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin, FilterMixin, SortMixin
-from .technical import sort_filter_parser
+from views.mixins import PaginationMixin, FilterMixin, SortMixin
+from views.technical import sort_filter_parser
 
 
 class NotificationListView(Resource, PaginationMixin, FilterMixin, SortMixin):

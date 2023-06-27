@@ -2,14 +2,14 @@ import http_codes
 from sqlalchemy.orm import joinedload
 from flask_restful import Resource, abort, reqparse
 from marshmallow import ValidationError
-from flask import jsonify, make_response, request
+from flask import jsonify, make_response
 from flask_jwt_extended import jwt_required
 from models import Faculty, University
 from schemas import FacultyGetSchema, FacultyCreateSchema, FacultyUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin, FilterMixin, SortMixin
-from .technical import sort_filter_parser
+from views.mixins import PaginationMixin, FilterMixin, SortMixin
+from views.technical import sort_filter_parser
 
 
 parser = reqparse.RequestParser(bundle_errors=True)

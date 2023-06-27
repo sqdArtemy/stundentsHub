@@ -1,8 +1,8 @@
 import json
 import urllib
 from marshmallow import fields, validate, validates, ValidationError, EXCLUDE, pre_load, post_dump
-from .user import UserGetSchema
-from .file import FileCreateSchema, FileGetSchema
+from schemas.user import UserGetSchema
+from schemas.file import FileCreateSchema, FileGetSchema
 from models import Post, User
 from app_init import ma
 from utilities import instance_exists_by_id

@@ -10,8 +10,8 @@ from models import University
 from schemas import UniversityGetSchema, UniversityCreateSchema, UniversityUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler, save_file
-from .mixins import PaginationMixin, FilterMixin, SortMixin
-from .technical import sort_filter_parser
+from views.mixins import PaginationMixin, FilterMixin, SortMixin
+from views.technical import sort_filter_parser
 
 
 parser = reqparse.RequestParser(bundle_errors=True)

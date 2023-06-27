@@ -1,5 +1,5 @@
 from db_init import db
-from .mixins import ModelMixinQuerySimplifier
+from models.mixins import ModelMixinQuerySimplifier
 
 
 class University(db.Model, ModelMixinQuerySimplifier):

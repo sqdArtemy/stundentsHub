@@ -13,8 +13,8 @@ from db_init import db, redis_store
 from schemas import UserCreateSchema, UserGetSchema, UserUpdateSchema
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETED, OBJECT_EDIT_NOT_ALLOWED
 from utilities import is_authorized_error_handler, save_file, delete_file
-from .mixins import PaginationMixin, FilterMixin, SortMixin
-from .technical import sort_filter_parser
+from views.mixins import PaginationMixin, FilterMixin, SortMixin
+from views.technical import sort_filter_parser
 
 
 parser = reqparse.RequestParser(bundle_errors=True)
@@ -133,7 +133,6 @@ class UserChangePassword(Resource):
 
 
 class UserMeView(Resource):
-    user_schema = UserGetSchema()
 
     @is_authorized_error_handler()
     @jwt_required()

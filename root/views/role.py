@@ -7,8 +7,8 @@ from models import Role
 from schemas import RoleGetSchema, RoleCreateSchema, RoleUpdateSchema
 from text_templates import MSG_MISSING, OBJECT_DOES_NOT_EXIST, OBJECT_DELETED
 from utilities import is_authorized_error_handler
-from .mixins import PaginationMixin, FilterMixin, SortMixin
-from .technical import sort_filter_parser
+from views.mixins import PaginationMixin, FilterMixin, SortMixin
+from views.technical import sort_filter_parser
 
 parser = reqparse.RequestParser(bundle_errors=True)
 parser.add_argument("role_name", location="form", help=MSG_MISSING.format("role_name"))

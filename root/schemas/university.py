@@ -1,7 +1,7 @@
 from marshmallow import fields, validates, ValidationError, EXCLUDE, pre_load
 from models import University
-from .faculty import FacultyGetSchema
-from .file import FileGetSchema, FileCreateSchema
+from schemas.faculty import FacultyGetSchema
+from schemas.file import FileGetSchema, FileCreateSchema
 from app_init import ma
 from utilities import is_name_valid, is_email_valid, is_phone_valid
 

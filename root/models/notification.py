@@ -1,6 +1,6 @@
 from db_init import db
 from datetime import datetime
-from .mixins import ModelMixinQuerySimplifier
+from models.mixins import ModelMixinQuerySimplifier
 
 
 class Notification(db.Model, ModelMixinQuerySimplifier):
