@@ -1,12 +1,14 @@
-from flask import make_response, jsonify
+from flask import make_response, jsonify, request
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
+from flask_socketio import emit, join_room, leave_room, Namespace
 import http_codes
 from datetime import datetime
 from marshmallow import ValidationError
 from flask_restful import Resource, abort, reqparse
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Message, User
+from app_init import socketio
 from schemas import MessageGetSchema, MessageUpdateSchema, MessageCreateSchema, UserGetSchema
 from utilities import is_authorized_error_handler
 from text_templates import OBJECT_DOES_NOT_EXIST, OBJECT_DELETE_NOT_ALLOWED, OBJECT_DELETED
@@ -82,24 +84,6 @@ class MessageListView(Resource, PaginationMixin, SortMixin, FilterMixin):
         )
 
         return response
-
-    @is_authorized_error_handler()
-    @jwt_required()
-    def post(self, receiver_id: int):
-        sender = User.query.get(get_jwt_identity())
-        receiver = User.query.get_or_404(receiver_id, description=OBJECT_DOES_NOT_EXIST.format("User", receiver_id))
-
-        data = parser.parse_args()
-        data["message_sender"] = UserGetSchema(only=["user_id"]).dump(sender)
-        data["message_receiver"] = UserGetSchema(only=["user_id"]).dump(receiver)
-
-        try:
-            message = self.message_create_schema.load(data)
-            message.create()
-
-            return make_response(self.message_get_schema.dump(message), http_codes.HTTP_CREATED_201)
-        except ValidationError as e:
-            abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 class MessageDetailedView(Resource):

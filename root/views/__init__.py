@@ -8,3 +8,4 @@ from .comment import CommentListView, CommentDetailedView
 from .technical import RefreshJWTView
 from .notification import NotificationListView, NotificationDetailedView
 from .message import MessageListView, MessageDetailedView
+from .chat import ChatView

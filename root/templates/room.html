@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ChatRoom</title>
+    <link
+            rel="stylesheet"
+            href ="{{ url_for("static", filename='css/style.css') }}"
+    />
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+            integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+            crossorigin="anonymous"
+    ></script>
+</head>
+<body>
+    <div class="message-box">
+      <h2>Chat Room: {{room_id}}</h2>
+      <div class="messages" id="messages"></div>
+      <div class="inputs">
+        <input
+          type="text"
+          rows="3"
+          placeholder="Message"
+          name="message"
+          id="message"
+        />
+        <button type="button" name="send" id="send-btn" onClick="sendMessage()">
+          Send
+        </button>
+      </div>
+    </div>
+    <script type="text/javascript">
+      var socketio = io();
+
+      const messages = document.getElementById("messages");
+
+      const createMessage = (name, surname, msg, date) => {
+        const content = `
+        <div class="text">
+            <span>
+                <strong>${name} ${surname}</strong>: ${msg}
+            </span>
+            <span class="muted">
+                ${date}
+            </span>
+        </div>
+        `;
+        messages.innerHTML += content;
+      };
+
+      socketio.on("connect", () => {
+          socketio.emit("join_room", { room_id: "{{ room_id }}" });
+      });
+
+      socketio.on("disconnect", () => {
+          socketio.emit("leave_room", { room_id: "{{ room_id }}"});
+      });
+
+      socketio.on("display_message", (data) => {
+          createMessage(
+              data.name,
+              data.surname,
+              data.text,
+              data.date
+          )
+      });
+
+      const sendMessage = () => {
+        const message = document.getElementById("message");
+        if (message.value === "") return;
+        socketio.emit("message", {
+            text: message.value ,
+            sender_id: "{{ sender_id }}",
+            receiver_id: "{{ receiver_id }}",
+            room_id: "{{ room_id }}"
+        });
+        message.value = "";
+      };
+    </script>
+    {% for msg in messages %}
+    <script type="text/javascript">
+      createMessage(
+          "{{msg.sender.user_name }}",
+          "{{ msg.sender.user_surname }}",
+          "{{msg.message_text}}",
+          "{{ msg.message_created_at}}"
+      );
+    </script>
+    {% endfor %}
+</body>
+</html>

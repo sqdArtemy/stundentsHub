@@ -1,6 +1,6 @@
 from flask_cli import FlaskGroup
 from flask_restful import Api
-from app_init import app
+from app_init import app, socketio
 from flask_jwt_extended import JWTManager
 from middlewares import check_blacklisted_tokens
 from views import (
@@ -8,14 +8,14 @@ from views import (
     UniversityDetailedView, UniversityListView, FacultyListView, FacultyDetailedView, PostDetailedView, PostListView,
     CommentDetailedView, CommentListView, UserLoginView, RefreshJWTView, UserChangePassword, PostRateView, UserMeView,
     UserFollowView, PostAddFile, PostDeleteFile, PostBulkEditFiles, NotificationListView, NotificationDetailedView,
-    UserLogOutView, MessageListView, MessageDetailedView
+    UserLogOutView, MessageListView, MessageDetailedView, ChatView
 )
 
 JWTManager(app)
 api = Api(app)
 cli = FlaskGroup(app)
 
-from models import User, Role, University, Faculty, Post, Comment, File, Notification, Message
+from models import User, Role, University, Faculty, Post, Comment, File, Notification, Message, ChatRoom
 
 # Role urls
 api.add_resource(RoleListViewSet, "/roles")
@@ -49,7 +49,7 @@ api.add_resource(CommentDetailedView, "/comment/<int:comment_id>")
 api.add_resource(NotificationListView, "/notifications")
 api.add_resource(NotificationDetailedView, "/notification/<int:notification_id>")
 # Chat urls
-api.add_resource(MessageListView, "/chat/<int:receiver_id>")
+api.add_resource(ChatView, "/chat/<int:receiver_id>")
 api.add_resource(MessageDetailedView, "/chat/<int:receiver_id>/message/<int:message_id>")
 # Technical urls
 api.add_resource(RefreshJWTView, "/token/refresh")
@@ -62,4 +62,4 @@ def check_blacklisted_tokens_middleware():
 
 
 if __name__ == '__main__':
-    cli()
+    socketio.run(app)
