@@ -1,6 +1,7 @@
+from datetime import datetime
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
-from flask import render_template
+from flask import render_template, session
 from app_init import socketio, app
 from flask_socketio import join_room, leave_room, emit
 from models import User, ChatRoom, Message
@@ -12,12 +13,11 @@ from text_templates import OBJECT_DOES_NOT_EXIST
 
 class ChatView(Resource):
 
-    # @is_authorized_error_handler()
-    # @jwt_required()
+    @is_authorized_error_handler()
+    @jwt_required()
     def get(self, receiver_id: int):
         receiver = User.query.get_or_404(receiver_id, description=OBJECT_DOES_NOT_EXIST.format("User", receiver_id))
-        sender = User.query.get(21)
-        # sender_id = get_jwt_identity()
+        sender = User.query.get(get_jwt_identity())
 
         room = ChatRoom.query.filter(
             ChatRoom.chatroom_members.any(User.user_id == sender.user_id),
@@ -35,6 +35,8 @@ class ChatView(Resource):
             )
         ).all()
 
+        session["room_id"] = room.chatroom_id
+
         response = app.make_response(
             render_template(
                 "room.html",
@@ -51,12 +53,14 @@ class ChatView(Resource):
 
 @socketio.on("join_room")
 def join(data):
-    join_room(data.get("room_id"))
+    if not data.get("room_id"):
+        return
+    join_room(int(data.get("room_id")))
 
 
 @socketio.on("leave_room")
 def leave(data):
-    leave_room(data.get("room_id"))
+    leave_room(int(data.get("room_id")))
 
 
 @socketio.on("message")
@@ -65,7 +69,8 @@ def message(data):
         message_text=data.get("text"),
         sender=User.query.get(data.get("sender_id")),
         receiver=User.query.get(data.get("receiver_id")),
-        message_chatroom=data.get("room_id")
+        message_chatroom=data.get("room_id"),
+        message_created_at=datetime.utcnow().isoformat()
     )
     new_message.create()
 
@@ -75,5 +80,6 @@ def message(data):
              "surname": new_message.sender.user_surname,
              "text": new_message.message_text,
              "date": str(new_message.message_created_at)
-         }
+         },
+         room=int(data.get("room_id"))
          )

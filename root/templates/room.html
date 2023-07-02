@@ -84,7 +84,7 @@
           "{{msg.sender.user_name }}",
           "{{ msg.sender.user_surname }}",
           "{{msg.message_text}}",
-          "{{ msg.message_created_at}}"
+          "{% if msg.message_edited_at is not none %}{{ msg.message_edited_at }}{% else %}{{ msg.message_created_at }}{% endif %}"
       );
     </script>
     {% endfor %}
