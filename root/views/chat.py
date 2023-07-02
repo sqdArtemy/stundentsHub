@@ -18,7 +18,7 @@ class ChatView(Resource):
     @jwt_required()
     def get(self, receiver_id: int):
         receiver = User.query.get_or_404(receiver_id, description=OBJECT_DOES_NOT_EXIST.format("User", receiver_id))
-        sender = User.query.get(21)
+        sender = User.query.get(get_jwt_identity())
 
         if sender is receiver:
             room = db.session.execute(
@@ -98,7 +98,8 @@ def message(data):
              "name": new_message.sender.user_name,
              "surname": new_message.sender.user_surname,
              "text": new_message.message_text,
-             "date": str(new_message.message_created_at)
+             "date": str(new_message.message_created_at),
+             "img_url": new_message.sender.user_image.file_url
          },
          room=int(data.get("room_id"))
          )

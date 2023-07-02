@@ -20,18 +20,23 @@
         var socketio = io();
         const messages = document.getElementById("messages");
 
-        const createMessage = (name, surname, msg, date) => {
+        const createMessage = (name, surname, msg, date, img_url) => {
           const messageContainer = document.createElement("div");
           messageContainer.classList.add("message");
 
           const senderInfo = document.createElement("span");
           senderInfo.innerHTML = `<strong>${name} ${surname}</strong>: ${msg}`;
 
+          const senderPicture = document.createElement("img");
+          senderPicture.src = img_url;
+          senderPicture.alt = `${name}'s Picture`;
+
           const messageDate = document.createElement("span");
           messageDate.classList.add("muted");
           const formattedDate = date.substring(0, 16);
           messageDate.textContent = formattedDate;
 
+          messageContainer.appendChild(senderPicture);
           messageContainer.appendChild(senderInfo);
           messageContainer.appendChild(messageDate);
 
@@ -58,7 +63,7 @@
         });
 
         socketio.on("display_message", (data) => {
-            createMessage(data.name, data.surname, data.text, data.date);
+            createMessage(data.name, data.surname, data.text, data.date, data.img_url);
         });
 
         const sendMessage = () => {
@@ -81,7 +86,8 @@
                 "{{ msg.sender.user_name }}",
                 "{{ msg.sender.user_surname }}",
                 "{{ msg.message_text }}",
-                "{% if msg.message_edited_at is not none %}{{ msg.message_edited_at }}{% else %}{{ msg.message_created_at }}{% endif %}"
+                "{% if msg.message_edited_at is not none %}{{ msg.message_edited_at }}{% else %}{{ msg.message_created_at }}{% endif %}",
+                "{{ msg.sender.user_image.file_url }}"
             );
         </script>
     {% endfor %}

@@ -50,6 +50,7 @@ api.add_resource(NotificationListView, "/notifications")
 api.add_resource(NotificationDetailedView, "/notification/<int:notification_id>")
 # Chat urls
 api.add_resource(ChatView, "/chat/<int:receiver_id>")
+api.add_resource(MessageListView, "/chat/<int:receiver_id>/messages")
 api.add_resource(MessageDetailedView, "/chat/<int:receiver_id>/message/<int:message_id>")
 # Technical urls
 api.add_resource(RefreshJWTView, "/token/refresh")
