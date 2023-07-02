@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import or_
+from sqlalchemy import or_, text
+from db_init import db
 from sqlalchemy.orm import joinedload
 from flask import render_template
 from app_init import socketio, app
@@ -17,16 +18,34 @@ class ChatView(Resource):
     @jwt_required()
     def get(self, receiver_id: int):
         receiver = User.query.get_or_404(receiver_id, description=OBJECT_DOES_NOT_EXIST.format("User", receiver_id))
-        sender = User.query.get(get_jwt_identity())
+        sender = User.query.get(21)
 
-        room = ChatRoom.query.filter(
-            ChatRoom.chatroom_members.any(User.user_id == sender.user_id),
-            ChatRoom.chatroom_members.any(User.user_id == receiver_id)
-        ).first()
+        if sender is receiver:
+            room = db.session.execute(
+                text("""
+                    SELECT cr.chatroom_id
+                    FROM chat_rooms cr
+                    JOIN chatroom_user cru ON cr.chatroom_id = cru.chatroom_id
+                    GROUP BY cr.chatroom_id
+                    HAVING COUNT(cru.user_id) = 1
+                    LIMIT 1
+                    """),
+                {"room_member_id": receiver_id}
+            ).fetchone()
 
-        if not room:
-            room = ChatRoom(chatroom_members=[receiver, sender])
-            room.create()
+            if not room:
+                room = ChatRoom(chatroom_members=[sender])
+                room.create()
+
+        else:
+            room = ChatRoom.query.filter(
+                ChatRoom.chatroom_members.any(User.user_id == sender.user_id),
+                ChatRoom.chatroom_members.any(User.user_id == receiver_id)
+            ).first()
+
+            if not room:
+                room = ChatRoom(chatroom_members=[receiver, sender])
+                room.create()
 
         messages = Message.query.options(joinedload(Message.sender), joinedload(Message.receiver)).filter(
             or_(
@@ -58,6 +77,8 @@ def join(data):
 
 @socketio.on("leave_room")
 def leave(data):
+    if not data.get("room_id"):
+        return
     leave_room(int(data.get("room_id")))
 
 
