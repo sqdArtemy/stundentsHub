@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
-from flask import render_template, session
+from flask import render_template
 from app_init import socketio, app
 from flask_socketio import join_room, leave_room, emit
 from models import User, ChatRoom, Message
@@ -34,8 +34,6 @@ class ChatView(Resource):
                 (Message.message_sender == receiver_id) & (Message.message_receiver == sender.user_id)
             )
         ).all()
-
-        session["room_id"] = room.chatroom_id
 
         response = app.make_response(
             render_template(
