@@ -46,6 +46,10 @@ class Config:
     MAIL_USE_SSL = True
     MAIL_USERNAME = get_env_variable("MAIL_USERNAME")
     MAIL_PASSWORD = get_env_variable("MAIL_PASSWORD")
+    # Celery
+    CELERY_BROKER_URL = get_env_variable("CELERY_BROKER_URL")
+    CELERY_RESULT_BACKEND = get_env_variable("CELERY_RESULT_BACKEND")
+    CELERY_INCLUDE = ["tasks"]
 
 
 class ProductionConfig(Config):

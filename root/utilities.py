@@ -1,9 +1,8 @@
 import re
 import os
-from typing import List
 
 import aiofiles
-from app_init import app, mail
+from app_init import app
 import http_codes
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from jwt.exceptions import ExpiredSignatureError
@@ -11,7 +10,6 @@ from flask import current_app
 from flask_restful import abort
 from marshmallow import ValidationError
 from exceptions import JWTRevokedError
-from flask_mail import Message
 
 
 async def save_file(file, file_url):
@@ -25,20 +23,6 @@ async def delete_file(file_url):
     file_path = os.path.join(app.config["ROOT_FOLDER"], file_url)
     if os.path.exists(file_path):
         os.remove(file_path)
-
-
-def send_mail(recipients: List[str], subject: str, body: str):
-    message = Message(
-        subject=subject,
-        recipients=recipients,
-        body=body,
-        sender="noreply@studenthub.com"
-    )
-
-    try:
-        mail.send(message)
-    except Exception as e:
-        abort(http_codes.HTTP_BAD_REQUEST_400, error_message=str(e))
 
 
 def instance_exists_by_id(_id: int, model) -> bool:
