@@ -14,12 +14,12 @@ from text_templates import OBJECT_DOES_NOT_EXIST
 
 class ChatView(Resource):
 
-    # @is_authorized_error_handler()
-    # @jwt_required()
-    def get(self, receiver_id: int, sender: int):
+    @is_authorized_error_handler()
+    @jwt_required()
+    def get(self, receiver_id: int):
         with db.session.begin():
             receiver = User.query.get_or_404(receiver_id, description=OBJECT_DOES_NOT_EXIST.format("User", receiver_id))
-            sender = User.query.get(sender)
+            sender = User.query.get(get_jwt_identity())
 
             if sender is receiver:
                 room = db.session.execute(
