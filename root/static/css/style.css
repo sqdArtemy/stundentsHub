@@ -94,3 +94,7 @@ button[type="button"]:hover {
         border-radius: 5px;
     }
 }
+
+.message.read {
+    background-color: #e9e9e9;
+}

@@ -20,7 +20,7 @@
         var socketio = io();
         const messages = document.getElementById("messages");
 
-        const createMessage = (name, surname, msg, date, img_url) => {
+        const createMessage = (name, surname, msg, date, img_url, isRead) => {
           const messageContainer = document.createElement("div");
           messageContainer.classList.add("message");
 
@@ -50,6 +50,9 @@
 
           messageContainer.appendChild(messageContent);
           messageContainer.appendChild(timestampContainer);
+          if (isRead) {
+              messageContainer.classList.add("read");
+          }
 
           messages.appendChild(messageContainer);
         };
@@ -63,7 +66,7 @@
         });
 
         socketio.on("display_message", (data) => {
-            createMessage(data.name, data.surname, data.text, data.date, data.img_url);
+            createMessage(data.name, data.surname, data.text, data.date, data.img_url, data.is_read);
         });
 
         const sendMessage = () => {
@@ -87,7 +90,8 @@
                 "{{ msg.sender.user_surname }}",
                 "{{ msg.message_text }}",
                 "{% if msg.message_edited_at is not none %}{{ msg.message_edited_at }}{% else %}{{ msg.message_created_at }}{% endif %}",
-                "{{ msg.sender.user_image.file_url }}"
+                "{{ msg.sender.user_image.file_url }}",
+                 {{ msg.message_is_read|lower }}
             );
         </script>
     {% endfor %}
