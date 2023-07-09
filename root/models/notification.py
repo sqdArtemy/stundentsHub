@@ -1,6 +1,9 @@
 from db_init import db
 from datetime import datetime
+from sqlalchemy.event import listens_for
+from models.user import User
 from models.mixins import ModelMixinQuerySimplifier
+from utilities import send_mail
 
 
 class Notification(db.Model, ModelMixinQuerySimplifier):
@@ -22,3 +25,12 @@ class Notification(db.Model, ModelMixinQuerySimplifier):
 
     def __repr__(self):
         return f"Notification {self.notification_id} to {self.notification_receiver}"
+
+
+@listens_for(Notification, "after_insert")
+def send_notification_by_email(mapper, connection, target):
+    send_mail(
+        subject="New notification has been received!",
+        recipients=[User.query.get(target.notification_receiver).user_email],
+        body=target.notification_text
+    )
